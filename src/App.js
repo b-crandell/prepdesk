@@ -113,6 +113,21 @@ export default function App() {
   const touchStartY = useRef(null);
   const q = QUESTIONS[qIndex];
 
+  // Keyboard navigation for desktop
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        if (screen === 0) startRecording();
+        else if (screen === 1) stopRecording();
+        else if (screen === 2) nextQuestion();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, transitioning]);
+
   // Timer
   useEffect(() => {
     if (isRecording) {
@@ -185,6 +200,7 @@ export default function App() {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
+      <div className="app-frame">
       {/* Nav dots */}
       <div className="nav-dots">
         {[0, 1, 2].map((i) => (
@@ -346,6 +362,7 @@ export default function App() {
           </button>
         </div>
       </div>
+      </div> {/* app-frame */}
     </div>
   );
 }
