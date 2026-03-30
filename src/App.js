@@ -1,25 +1,351 @@
-import logo from './logo.svg';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 
-function App() {
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+const QUESTIONS = [
+  {
+    id: 1,
+    category: 'Valuation',
+    difficulty: 'Hard',
+    question:
+      'Walk me through a DCF analysis for a mature consumer goods company. What discount rate would you use and why?',
+    timeLimit: 120,
+  },
+  {
+    id: 2,
+    category: 'M&A',
+    difficulty: 'Medium',
+    question:
+      'What are the key differences between an accretion/dilution analysis and a DCF? When would you use each?',
+    timeLimit: 90,
+  },
+  {
+    id: 3,
+    category: 'LBO',
+    difficulty: 'Hard',
+    question:
+      'How would you structure an LBO model for a $500M EBITDA company at 8x entry multiple? What drives returns for the PE sponsor?',
+    timeLimit: 150,
+  },
+  {
+    id: 4,
+    category: 'Markets',
+    difficulty: 'Easy',
+    question:
+      'Walk me through what happens to a bond\'s price when interest rates rise, and how that affects a bank\'s balance sheet.',
+    timeLimit: 60,
+  },
+];
+
+const WAVEFORM_HEIGHTS = [
+  45, 72, 28, 88, 55, 38, 95, 62, 42, 80, 32, 70, 52, 90, 25, 65,
+  48, 85, 35, 75, 58, 40, 100, 30, 68, 50, 82, 22, 60, 78, 44, 92,
+];
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+function Waveform({ isActive }) {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="waveform">
+      {WAVEFORM_HEIGHTS.map((h, i) => (
+        <div
+          key={i}
+          className={`waveform-bar ${isActive ? 'active' : ''}`}
+          style={{
+            '--h': `${h}px`,
+            animationDelay: `${((i * 0.047) % 0.65).toFixed(3)}s`,
+            animationDuration: `${(0.32 + (i % 7) * 0.06).toFixed(2)}s`,
+          }}
+        />
+      ))}
     </div>
   );
 }
 
-export default App;
+function ScoreRing({ score, label, delay = 0 }) {
+  const r = 28;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (score / 100) * circ;
+
+  return (
+    <div className="score-ring-container" style={{ animationDelay: `${delay}s` }}>
+      <svg width="72" height="72" viewBox="0 0 72 72">
+        <circle cx="36" cy="36" r={r} fill="none" stroke="#1a1a1a" strokeWidth="4" />
+        <circle
+          cx="36" cy="36" r={r}
+          fill="none"
+          stroke="#c9a84c"
+          strokeWidth="4"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform="rotate(-90 36 36)"
+          className="score-arc"
+        />
+        <text
+          x="36" y="41"
+          textAnchor="middle"
+          fill="#fff"
+          fontSize="14"
+          fontFamily="DM Sans, sans-serif"
+          fontWeight="700"
+        >
+          {score}
+        </text>
+      </svg>
+      <span className="score-ring-label">{label}</span>
+    </div>
+  );
+}
+
+// ─── Main App ────────────────────────────────────────────────────────────────
+
+export default function App() {
+  const [screen, setScreen] = useState(0);        // 0=question 1=recording 2=feedback
+  const [qIndex, setQIndex] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+
+  const timerRef = useRef(null);
+  const touchStartY = useRef(null);
+  const q = QUESTIONS[qIndex];
+
+  // Timer
+  useEffect(() => {
+    if (isRecording) {
+      timerRef.current = setInterval(() => setTimer((t) => t + 1), 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [isRecording]);
+
+  const goTo = useCallback(
+    (next) => {
+      if (transitioning) return;
+      setTransitioning(true);
+      setTimeout(() => {
+        setScreen(next);
+        setTransitioning(false);
+      }, 280);
+    },
+    [transitioning],
+  );
+
+  const startRecording = () => {
+    setTimer(0);
+    setIsRecording(true);
+    goTo(1);
+  };
+
+  const stopRecording = () => {
+    setIsRecording(false);
+    goTo(2);
+  };
+
+  const nextQuestion = () => {
+    setQIndex((i) => (i + 1) % QUESTIONS.length);
+    setTimer(0);
+    setIsPlaying(false);
+    goTo(0);
+  };
+
+  // Touch swipe
+  const onTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const onTouchEnd = (e) => {
+    if (touchStartY.current === null) return;
+    const delta = touchStartY.current - e.changedTouches[0].clientY;
+    touchStartY.current = null;
+    if (Math.abs(delta) < 48) return;
+    if (delta > 0) {
+      if (screen === 0) startRecording();
+      else if (screen === 1) stopRecording();
+      else if (screen === 2) nextQuestion();
+    }
+  };
+
+  const fmt = (s) =>
+    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+  const scores = { Content: 85, Structure: 78, Clarity: 91, Confidence: 72 };
+  const overall = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / 4);
+
+  const screenClass = (i) =>
+    screen === i ? 'active' : screen > i ? 'above' : 'below';
+
+  return (
+    <div
+      className={`app ${transitioning ? 'transitioning' : ''}`}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Nav dots */}
+      <div className="nav-dots">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className={`nav-dot ${screen === i ? 'active' : ''}`} />
+        ))}
+      </div>
+
+      {/* ── Screen 0: Question ─────────────────────────────── */}
+      <div className={`screen screen-question ${screenClass(0)}`}>
+        <div className="screen-inner">
+          <div className="brand">
+            <span className="brand-text">PrepDesk</span>
+            <span className="brand-tag">IB</span>
+          </div>
+
+          <div className="flashcard">
+            <div className="flashcard-header">
+              <span className="category-badge">{q.category}</span>
+              <span className={`difficulty-badge diff-${q.difficulty.toLowerCase()}`}>
+                {q.difficulty}
+              </span>
+            </div>
+
+            <div className="question-number">
+              Question {q.id} of {QUESTIONS.length}
+            </div>
+
+            <p className="question-text">{q.question}</p>
+
+            <div className="time-limit">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6.5" stroke="#c9a84c" strokeWidth="1.4" />
+                <path d="M8 4.5V8l2 1.2" stroke="#c9a84c" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+              {q.timeLimit / 60} min suggested
+            </div>
+          </div>
+
+          <button className="cta-button" onClick={startRecording}>
+            <span>Start Recording</span>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="7" fill="#000" />
+              <circle cx="10" cy="10" r="3.5" fill="#c9a84c" />
+            </svg>
+          </button>
+
+          <div className="swipe-hint">
+            <div className="swipe-arrow" />
+            Swipe up to record
+          </div>
+        </div>
+      </div>
+
+      {/* ── Screen 1: Recording ────────────────────────────── */}
+      <div className={`screen screen-recording ${screenClass(1)}`}>
+        <div className="screen-inner">
+          <div className="recording-header">
+            <div className="rec-indicator">
+              <span className="rec-dot" />
+              REC
+            </div>
+            <div className="timer-display">{fmt(timer)}</div>
+          </div>
+
+          <div className="question-pill">
+            {q.question.length > 72 ? q.question.slice(0, 72) + '…' : q.question}
+          </div>
+
+          <div className="waveform-container">
+            <Waveform isActive={isRecording} />
+          </div>
+
+          <div className="time-limit-bar">
+            <div
+              className="time-limit-fill"
+              style={{ width: `${Math.min((timer / q.timeLimit) * 100, 100)}%` }}
+            />
+          </div>
+          <div className="time-limit-labels">
+            <span>0:00</span>
+            <span>{fmt(q.timeLimit)}</span>
+          </div>
+
+          <button className="stop-button" onClick={stopRecording}>
+            <div className="stop-icon" />
+            Stop &amp; Analyze
+          </button>
+
+          <div className="swipe-hint">
+            <div className="swipe-arrow" />
+            Swipe up to finish
+          </div>
+        </div>
+      </div>
+
+      {/* ── Screen 2: Feedback ─────────────────────────────── */}
+      <div className={`screen screen-feedback ${screenClass(2)}`}>
+        <div className="screen-inner">
+          <div className="feedback-header">
+            <span className="feedback-title">AI Feedback</span>
+            <div className="overall-score">
+              <span className="overall-number">{overall}</span>
+              <span className="overall-label">/100</span>
+            </div>
+          </div>
+
+          {/* Video replay */}
+          <div className="video-replay" onClick={() => setIsPlaying((p) => !p)}>
+            <div className="video-placeholder">
+              <div className={`play-btn ${isPlaying ? 'playing' : ''}`}>
+                {isPlaying ? (
+                  <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                    <rect x="6"  y="5" width="4" height="16" rx="1.5" fill="#c9a84c" />
+                    <rect x="16" y="5" width="4" height="16" rx="1.5" fill="#c9a84c" />
+                  </svg>
+                ) : (
+                  <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                    <path d="M8 5.5l14 7.5-14 7.5V5.5z" fill="#c9a84c" />
+                  </svg>
+                )}
+              </div>
+              <span className="video-duration">{fmt(timer || 47)}</span>
+            </div>
+            <div className="video-label">Your Response — tap to replay</div>
+          </div>
+
+          {/* Score breakdown */}
+          <div className="score-grid">
+            {Object.entries(scores).map(([label, score], i) => (
+              <ScoreRing key={label} score={score} label={label} delay={i * 0.1} />
+            ))}
+          </div>
+
+          {/* AI insight */}
+          <div className="ai-insight">
+            <div className="ai-insight-header">
+              <span className="ai-badge">AI</span>
+              <span className="ai-insight-label">Key Insight</span>
+            </div>
+            <p className="ai-insight-text">
+              Strong technical foundation on WACC components. Consider leading with the
+              conclusion — interviewers want the answer before the methodology in a
+              time-pressured setting. Your confidence dipped slightly in the back half;
+              try anchoring with "In summary…" before elaborating.
+            </p>
+          </div>
+
+          <button className="next-button" onClick={nextQuestion}>
+            Next Question
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M3 8h10M9 4l4 4-4 4"
+                stroke="#000"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
