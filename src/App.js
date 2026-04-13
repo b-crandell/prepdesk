@@ -351,25 +351,23 @@ export default function App() {
           </div>
 
           {/* Audio replay */}
+          <audio
+            ref={audioRef}
+            src={audioUrl || ''}
+            onEnded={() => setIsPlaying(false)}
+            style={{ display: 'none' }}
+          />
           <div className="video-replay" onClick={() => {
-            if (!audioRef.current) return;
+            const audio = audioRef.current;
+            if (!audio || !audioUrl) return;
             if (isPlaying) {
-              audioRef.current.pause();
-              audioRef.current.currentTime = 0;
+              audio.pause();
+              audio.currentTime = 0;
               setIsPlaying(false);
             } else {
-              audioRef.current.play();
-              setIsPlaying(true);
+              audio.play().then(() => setIsPlaying(true)).catch(() => {});
             }
           }}>
-            {audioUrl && (
-              <audio
-                ref={audioRef}
-                src={audioUrl}
-                onEnded={() => setIsPlaying(false)}
-                style={{ display: 'none' }}
-              />
-            )}
             <div className="video-placeholder">
               <div className={`play-btn ${isPlaying ? 'playing' : ''}`}>
                 {isPlaying ? (
