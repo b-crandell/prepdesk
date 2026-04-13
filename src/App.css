@@ -275,6 +275,18 @@ body {
   opacity: 0.88;
 }
 
+.mic-error {
+  width: 100%;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #ef4444;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .swipe-hint {
   display: flex;
   flex-direction: column;

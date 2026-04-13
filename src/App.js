@@ -108,9 +108,14 @@ export default function App() {
   const [timer, setTimer] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [micError, setMicError] = useState(null);
 
   const timerRef = useRef(null);
   const touchStartY = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioRef = useRef(null);
   const q = QUESTIONS[qIndex];
 
   // Keyboard navigation for desktop
@@ -128,14 +133,23 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, transitioning]);
 
-  // Timer
+  // Timer + auto-stop at time limit
   useEffect(() => {
     if (isRecording) {
-      timerRef.current = setInterval(() => setTimer((t) => t + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setTimer((t) => {
+          if (t + 1 >= q.timeLimit) {
+            stopRecording();
+            return t + 1;
+          }
+          return t + 1;
+        });
+      }, 1000);
     } else {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording]);
 
   const goTo = useCallback(
@@ -150,13 +164,38 @@ export default function App() {
     [transitioning],
   );
 
-  const startRecording = () => {
+  const startRecording = async () => {
+    setMicError(null);
+    setAudioUrl(null);
     setTimer(0);
-    setIsRecording(true);
-    goTo(1);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioUrl(URL.createObjectURL(blob));
+        stream.getTracks().forEach((t) => t.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      goTo(1);
+    } catch {
+      setMicError('Microphone access denied. Click "Allow" when your browser asks for permission.');
+    }
   };
 
   const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
     setIsRecording(false);
     goTo(2);
   };
@@ -165,6 +204,8 @@ export default function App() {
     setQIndex((i) => (i + 1) % QUESTIONS.length);
     setTimer(0);
     setIsPlaying(false);
+    setAudioUrl(null);
+    setMicError(null);
     goTo(0);
   };
 
@@ -247,6 +288,8 @@ export default function App() {
             </svg>
           </button>
 
+          {micError && <div className="mic-error">{micError}</div>}
+
           <div className="swipe-hint">
             <div className="swipe-arrow" />
             Swipe up to record
@@ -307,8 +350,26 @@ export default function App() {
             </div>
           </div>
 
-          {/* Video replay */}
-          <div className="video-replay" onClick={() => setIsPlaying((p) => !p)}>
+          {/* Audio replay */}
+          <div className="video-replay" onClick={() => {
+            if (!audioRef.current) return;
+            if (isPlaying) {
+              audioRef.current.pause();
+              audioRef.current.currentTime = 0;
+              setIsPlaying(false);
+            } else {
+              audioRef.current.play();
+              setIsPlaying(true);
+            }
+          }}>
+            {audioUrl && (
+              <audio
+                ref={audioRef}
+                src={audioUrl}
+                onEnded={() => setIsPlaying(false)}
+                style={{ display: 'none' }}
+              />
+            )}
             <div className="video-placeholder">
               <div className={`play-btn ${isPlaying ? 'playing' : ''}`}>
                 {isPlaying ? (
@@ -322,9 +383,11 @@ export default function App() {
                   </svg>
                 )}
               </div>
-              <span className="video-duration">{fmt(timer || 47)}</span>
+              <span className="video-duration">{fmt(timer)}</span>
             </div>
-            <div className="video-label">Your Response — tap to replay</div>
+            <div className="video-label">
+              {audioUrl ? 'Your recording — click to replay' : 'No recording captured'}
+            </div>
           </div>
 
           {/* Score breakdown */}
