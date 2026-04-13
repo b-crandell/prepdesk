@@ -401,6 +401,11 @@ export default function App() {
             </div>
           </div>
 
+          {/* Native audio fallback for debugging */}
+          {audioUrl && (
+            <audio controls src={audioUrl} style={{ width: '100%', marginTop: '4px' }} />
+          )}
+
           {/* Score breakdown */}
           <div className="score-grid">
             {Object.entries(scores).map(([label, score], i) => (
