@@ -118,19 +118,46 @@ export default function App() {
   const audioRef = useRef(null);
   const q = QUESTIONS[qIndex];
 
-  // Keyboard navigation for desktop
+  // Keyboard + mouse wheel navigation for desktop
   useEffect(() => {
     const onKey = (e) => {
-      if (e.code === 'Space' || e.code === 'ArrowUp') {
+      if (e.code === 'ArrowDown' || e.code === 'ArrowUp') {
         e.preventDefault();
-        if (screen === 1) stopRecording();
-        else if (screen === 2) nextQuestion();
+        if (e.code === 'ArrowDown') {
+          if (screen === 0) goTo(1);
+          else if (screen === 1) stopRecording();
+          else if (screen === 2) nextQuestion();
+        } else {
+          if (screen > 0) goTo(screen - 1);
+        }
       }
     };
+
+    let wheelLocked = false;
+    const onWheel = (e) => {
+      if (wheelLocked || transitioning) return;
+      wheelLocked = true;
+      setTimeout(() => { wheelLocked = false; }, 800);
+      if (e.deltaY > 0) {
+        // scroll down — advance
+        if (screen === 0) goTo(1);
+        else if (screen === 1) stopRecording();
+        else if (screen === 2) nextQuestion();
+      } else {
+        // scroll up — go back (only if not recording)
+        if (screen === 1 && !isRecording) goTo(0);
+        else if (screen === 2) goTo(1);
+      }
+    };
+
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('wheel', onWheel, { passive: true });
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('wheel', onWheel);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, transitioning]);
+  }, [screen, transitioning, isRecording]);
 
   // Timer + auto-stop at time limit
   useEffect(() => {
