@@ -110,12 +110,16 @@ export default function App() {
   const [transitioning, setTransitioning] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
   const [micError, setMicError] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
   const timerRef = useRef(null);
   const touchStartY = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const audioRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const transcriptRef = useRef('');
   const q = QUESTIONS[qIndex];
 
   // Keyboard + mouse wheel navigation for desktop
@@ -190,10 +194,47 @@ export default function App() {
     [transitioning],
   );
 
+  const analyzeTranscript = async (transcript, question, category) => {
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript, question, category }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFeedback(data);
+      }
+    } catch {
+      // falls back to placeholder scores
+    }
+    setIsAnalyzing(false);
+  };
+
   const startRecording = async () => {
     setMicError(null);
     setAudioUrl(null);
+    setFeedback(null);
     setTimer(0);
+    transcriptRef.current = '';
+
+    // Start speech recognition for transcription
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      recognition.onresult = (e) => {
+        let t = '';
+        for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript + ' ';
+        transcriptRef.current = t.trim();
+      };
+      recognition.start();
+      recognitionRef.current = recognition;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -216,7 +257,6 @@ export default function App() {
 
       mediaRecorder.start();
       setIsRecording(true);
-      goTo(1);
     } catch (err) {
       console.error('[PrepDesk] Mic error:', err);
       setMicError('Microphone access denied. Click "Allow" when your browser asks for permission.');
@@ -224,11 +264,19 @@ export default function App() {
   };
 
   const stopRecording = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
     goTo(2);
+    // Small delay to let speech recognition finalize transcript
+    setTimeout(() => {
+      analyzeTranscript(transcriptRef.current, q.question, q.category);
+    }, 500);
   };
 
   const nextQuestion = () => {
@@ -237,6 +285,7 @@ export default function App() {
     setIsPlaying(false);
     setAudioUrl(null);
     setMicError(null);
+    setFeedback(null);
     goTo(0);
   };
 
@@ -259,8 +308,9 @@ export default function App() {
   const fmt = (s) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
-  const scores = { Content: 85, Structure: 78, Clarity: 91, Confidence: 72 };
-  const overall = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / 4);
+  const scores = feedback?.scores || { Content: 85, Structure: 78, Clarity: 91, Confidence: 72 };
+  const overall = feedback?.overall || Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / 4);
+  const insight = feedback?.insight || 'Strong technical foundation on WACC components. Consider leading with the conclusion — interviewers want the answer before the methodology in a time-pressured setting.';
 
   const screenClass = (i) =>
     screen === i ? 'active' : screen > i ? 'above' : 'below';
@@ -384,8 +434,14 @@ export default function App() {
           <div className="feedback-header">
             <span className="feedback-title">AI Feedback</span>
             <div className="overall-score">
-              <span className="overall-number">{overall}</span>
-              <span className="overall-label">/100</span>
+              {isAnalyzing ? (
+                <span className="analyzing-label">Analyzing…</span>
+              ) : (
+                <>
+                  <span className="overall-number">{overall}</span>
+                  <span className="overall-label">/100</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -441,10 +497,7 @@ export default function App() {
               <span className="ai-insight-label">Key Insight</span>
             </div>
             <p className="ai-insight-text">
-              Strong technical foundation on WACC components. Consider leading with the
-              conclusion — interviewers want the answer before the methodology in a
-              time-pressured setting. Your confidence dipped slightly in the back half;
-              try anchoring with "In summary…" before elaborating.
+              {isAnalyzing ? 'Analyzing your response…' : insight}
             </p>
           </div>
 

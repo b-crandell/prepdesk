@@ -502,6 +502,18 @@ body {
   font-weight: 400;
 }
 
+.analyzing-label {
+  font-size: 16px;
+  color: var(--gold);
+  font-weight: 500;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* Video replay */
 
 .video-replay {
