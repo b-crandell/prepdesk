@@ -123,8 +123,7 @@ export default function App() {
     const onKey = (e) => {
       if (e.code === 'Space' || e.code === 'ArrowUp') {
         e.preventDefault();
-        if (screen === 0) startRecording();
-        else if (screen === 1) stopRecording();
+        if (screen === 1) stopRecording();
         else if (screen === 2) nextQuestion();
       }
     };
@@ -225,8 +224,7 @@ export default function App() {
     touchStartY.current = null;
     if (Math.abs(delta) < 48) return;
     if (delta > 0) {
-      if (screen === 0) startRecording();
-      else if (screen === 1) stopRecording();
+      if (screen === 1) stopRecording();
       else if (screen === 2) nextQuestion();
     }
   };
