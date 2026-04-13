@@ -171,28 +171,20 @@ export default function App() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Pick best supported format
       const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg', 'audio/mp4']
         .find((t) => MediaRecorder.isTypeSupported(t)) || '';
-      console.log('[PrepDesk] Using mimeType:', mimeType || '(browser default)');
 
       const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
-        console.log('[PrepDesk] Data chunk:', e.data.size, 'bytes');
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
-        const chunks = audioChunksRef.current;
-        console.log('[PrepDesk] Recording stopped. Chunks:', chunks.length);
-        const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
-        console.log('[PrepDesk] Blob size:', blob.size, 'bytes');
-        const url = URL.createObjectURL(blob);
-        console.log('[PrepDesk] Audio URL created:', url);
-        setAudioUrl(url);
+        const blob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
+        setAudioUrl(URL.createObjectURL(blob));
         stream.getTracks().forEach((t) => t.stop());
       };
 
@@ -366,7 +358,7 @@ export default function App() {
           {/* Audio replay */}
           <audio
             ref={audioRef}
-            src={audioUrl || ''}
+            src={audioUrl || undefined}
             onEnded={() => setIsPlaying(false)}
             style={{ display: 'none' }}
           />
@@ -400,11 +392,6 @@ export default function App() {
               {audioUrl ? 'Your recording — click to replay' : 'No recording captured'}
             </div>
           </div>
-
-          {/* Native audio fallback for debugging */}
-          {audioUrl && (
-            <audio controls src={audioUrl} style={{ width: '100%', marginTop: '4px' }} />
-          )}
 
           {/* Score breakdown */}
           <div className="score-grid">
