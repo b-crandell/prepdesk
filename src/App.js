@@ -283,19 +283,16 @@ export default function App() {
             </div>
           </div>
 
-          <button className="cta-button" onClick={startRecording}>
-            <span>Start Recording</span>
+          <button className="cta-button" onClick={() => goTo(1)}>
+            <span>Begin Answer</span>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="10" r="7" fill="#000" />
-              <circle cx="10" cy="10" r="3.5" fill="#c9a84c" />
+              <path d="M10 3a7 7 0 100 14A7 7 0 0010 3zm0 1.5a5.5 5.5 0 110 11 5.5 5.5 0 010-11zM8 7l5 3-5 3V7z" fill="#000"/>
             </svg>
           </button>
 
-          {micError && <div className="mic-error">{micError}</div>}
-
           <div className="swipe-hint">
             <div className="swipe-arrow" />
-            Swipe up to record
+            Swipe up to answer
           </div>
         </div>
       </div>
@@ -304,7 +301,7 @@ export default function App() {
       <div className={`screen screen-recording ${screenClass(1)}`}>
         <div className="screen-inner">
           <div className="recording-header">
-            <div className="rec-indicator">
+            <div className="rec-indicator" style={{ opacity: isRecording ? 1 : 0 }}>
               <span className="rec-dot" />
               REC
             </div>
@@ -330,10 +327,22 @@ export default function App() {
             <span>{fmt(q.timeLimit)}</span>
           </div>
 
-          <button className="stop-button" onClick={stopRecording}>
-            <div className="stop-icon" />
-            Stop &amp; Analyze
-          </button>
+          {isRecording ? (
+            <button className="stop-button" onClick={stopRecording}>
+              <div className="stop-icon" />
+              Stop &amp; Analyze
+            </button>
+          ) : (
+            <button className="cta-button" onClick={startRecording}>
+              <span>Start Recording</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="7" fill="#000" />
+                <circle cx="10" cy="10" r="3.5" fill="#c9a84c" />
+              </svg>
+            </button>
+          )}
+
+          {micError && <div className="mic-error">{micError}</div>}
 
           <div className="swipe-hint">
             <div className="swipe-arrow" />
