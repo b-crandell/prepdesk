@@ -170,24 +170,37 @@ export default function App() {
     setTimer(0);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+
+      // Pick best supported format
+      const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg', 'audio/mp4']
+        .find((t) => MediaRecorder.isTypeSupported(t)) || '';
+      console.log('[PrepDesk] Using mimeType:', mimeType || '(browser default)');
+
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
+        console.log('[PrepDesk] Data chunk:', e.data.size, 'bytes');
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        setAudioUrl(URL.createObjectURL(blob));
+        const chunks = audioChunksRef.current;
+        console.log('[PrepDesk] Recording stopped. Chunks:', chunks.length);
+        const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
+        console.log('[PrepDesk] Blob size:', blob.size, 'bytes');
+        const url = URL.createObjectURL(blob);
+        console.log('[PrepDesk] Audio URL created:', url);
+        setAudioUrl(url);
         stream.getTracks().forEach((t) => t.stop());
       };
 
       mediaRecorder.start();
       setIsRecording(true);
       goTo(1);
-    } catch {
+    } catch (err) {
+      console.error('[PrepDesk] Mic error:', err);
       setMicError('Microphone access denied. Click "Allow" when your browser asks for permission.');
     }
   };
