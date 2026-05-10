@@ -2339,3 +2339,269 @@ body {
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.55);
 }
+
+/* ─── Lobby ───────────────────────────────────────────────────── */
+
+.iv-lobby {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  justify-content: center;
+  padding-bottom: 24px;
+}
+
+.iv-lobby-header {
+  text-align: center;
+}
+
+.iv-lobby-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.iv-lobby-sub {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* Type cards */
+
+.iv-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.iv-type-card {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 28px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 0.2s, background 0.2s, transform 0.18s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.iv-type-card:hover {
+  border-color: var(--gold-border);
+  background: rgba(201, 168, 76, 0.04);
+  transform: translateY(-3px);
+}
+
+.iv-type-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.iv-type-icon {
+  width: 50px;
+  height: 50px;
+  background: rgba(201, 168, 76, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iv-duration-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 4px 11px;
+  letter-spacing: 0.03em;
+}
+
+.iv-type-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.iv-type-desc {
+  font-size: 13.5px;
+  line-height: 1.62;
+  color: var(--text-dim);
+  flex: 1;
+}
+
+.iv-type-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.iv-type-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.iv-tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.7);
+  background: rgba(201, 168, 76, 0.08);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+
+.iv-type-arrow {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.18s;
+}
+
+.iv-type-card:hover .iv-type-arrow {
+  color: var(--gold);
+}
+
+/* ─── Difficulty selection ─────────────────────────────────────── */
+
+.iv-diff-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 24px;
+}
+
+.iv-diff-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.iv-back-link {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.18s;
+  margin-bottom: 4px;
+}
+
+.iv-back-link:hover {
+  color: var(--text);
+}
+
+.iv-diff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 700px;
+}
+
+.iv-diff-card {
+  background: var(--surface);
+  border: 1.5px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.iv-diff-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.iv-diff-card.selected {
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.05);
+}
+
+.iv-diff-label {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.iv-diff-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.iv-diff-check {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.iv-diff-start {
+  padding: 14px 52px;
+  font-size: 15px;
+}
+
+/* ─── Interview topbar (format context + steps) ────────────────── */
+
+.iv-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 24px;
+}
+
+.iv-topbar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.iv-format-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iv-active-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+  background: rgba(201, 168, 76, 0.1);
+  border: 1px solid var(--gold-border);
+  border-radius: 6px;
+  padding: 3px 10px;
+  letter-spacing: 0.03em;
+}
