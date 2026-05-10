@@ -2229,7 +2229,7 @@ body {
 .iv-record-left {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 20px;
@@ -2604,4 +2604,218 @@ body {
   border-radius: 6px;
   padding: 3px 10px;
   letter-spacing: 0.03em;
+}
+
+/* ─── Live transcript (recording screen) ──────────────────────── */
+
+.iv-live-transcript {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+  max-height: 160px;
+  display: flex;
+  flex-direction: column;
+}
+
+.iv-live-transcript-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.iv-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: recPulse 1.1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.iv-live-transcript-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.iv-live-word-count {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.2);
+  margin-left: auto;
+}
+
+.iv-live-transcript-body {
+  padding: 10px 14px 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.iv-live-transcript-text {
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.75);
+  word-break: break-word;
+}
+
+.iv-live-transcript-placeholder {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.2);
+  font-style: italic;
+}
+
+/* ─── Audio player (feedback screen) ──────────────────────────── */
+
+.iv-audio-player {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: border-color 0.18s;
+  flex-shrink: 0;
+}
+
+.iv-audio-player:hover {
+  border-color: var(--gold-border);
+}
+
+.iv-audio-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.1);
+  border: 1.5px solid var(--gold-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.18s;
+}
+
+.iv-audio-play-btn.playing {
+  background: rgba(201, 168, 76, 0.2);
+}
+
+.iv-audio-progress-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.iv-audio-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.iv-audio-progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: width 0.25s linear;
+}
+
+.iv-audio-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-audio-unavail {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── Transcript panel (feedback screen) ──────────────────────── */
+
+.iv-transcript-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.iv-transcript-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.iv-transcript-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.iv-transcript-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.iv-transcript-playing {
+  color: var(--gold);
+}
+
+.iv-transcript-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 16px;
+}
+
+.iv-transcript-text {
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.82);
+  word-break: break-word;
+}
+
+.iv-transcript-empty {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.25);
+  font-style: italic;
+}
+
+/* Word highlight states */
+
+.iv-word {
+  transition: color 0.15s, background 0.15s;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.iv-word.spoken {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.iv-word.current {
+  color: #000;
+  background: var(--gold);
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 4px;
 }

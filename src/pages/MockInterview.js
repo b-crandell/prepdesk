@@ -110,21 +110,9 @@ const INTERVIEW_TYPES = [
 ];
 
 const DIFFICULTIES = [
-  {
-    id:    'easy',
-    label: 'Easy',
-    desc:  'Financial statement fundamentals, core valuation concepts, and basic accounting. Good for first-time preppers.',
-  },
-  {
-    id:    'medium',
-    label: 'Medium',
-    desc:  'DCF, WACC, M&A mechanics, LBO fundamentals, and intermediate accounting transactions.',
-  },
-  {
-    id:    'hard',
-    label: 'Hard',
-    desc:  'Complex deal structures, full merger models, advanced LBO return analysis, and technical edge cases.',
-  },
+  { id: 'easy',   label: 'Easy',   desc: 'Financial statement fundamentals, core valuation concepts, and basic accounting. Good for first-time preppers.' },
+  { id: 'medium', label: 'Medium', desc: 'DCF, WACC, M&A mechanics, LBO fundamentals, and intermediate accounting transactions.' },
+  { id: 'hard',   label: 'Hard',   desc: 'Complex deal structures, full merger models, advanced LBO return analysis, and technical edge cases.' },
 ];
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -158,30 +146,64 @@ function ScoreRing({ score, label, delay = 0 }) {
   );
 }
 
+/* Word-highlighted transcript — highlights current word during playback */
+function TranscriptDisplay({ text, currentTime, duration, isPlaying }) {
+  if (!text) return (
+    <p className="iv-transcript-empty">
+      No transcript captured — make sure your browser allows microphone access and supports speech recognition.
+    </p>
+  );
+  const words = text.split(/\s+/).filter(Boolean);
+  const totalWords = words.length;
+  const activeIdx = (isPlaying && duration > 0)
+    ? Math.min(Math.floor((currentTime / duration) * totalWords), totalWords - 1)
+    : -1;
+
+  return (
+    <p className="iv-transcript-text">
+      {words.map((word, i) => (
+        <span
+          key={i}
+          className={
+            i < activeIdx  ? 'iv-word spoken'
+            : i === activeIdx ? 'iv-word current'
+            : 'iv-word'
+          }
+        >
+          {word}{' '}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 const fmtTime  = s => `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
 const fmtLimit = s => {
   if (s < 60) return `${s}s`;
   if (s % 60 === 0) return `${s / 60} min`;
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2,'0')} min`;
 };
+const wordCount = str => (str || '').trim().split(/\s+/).filter(Boolean).length;
 
 const STEPS = ['Question', 'Record', 'Feedback'];
 
 /* ─── Component ─────────────────────────────────────────────── */
 
 export default function MockInterview() {
-  const [mode,        setMode]        = useState(null);
-  const [difficulty,  setDifficulty]  = useState(null);
-  const [pendingDiff, setPendingDiff] = useState('medium');
-  const [step,        setStep]        = useState(0);
-  const [qIndex,      setQIndex]      = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  const [timer,       setTimer]       = useState(0);
-  const [isPlaying,   setIsPlaying]   = useState(false);
-  const [audioUrl,    setAudioUrl]    = useState(null);
-  const [micError,    setMicError]    = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [feedback,    setFeedback]    = useState(null);
+  const [mode,            setMode]            = useState(null);
+  const [difficulty,      setDifficulty]      = useState(null);
+  const [pendingDiff,     setPendingDiff]     = useState('medium');
+  const [step,            setStep]            = useState(0);
+  const [qIndex,          setQIndex]          = useState(0);
+  const [isRecording,     setIsRecording]     = useState(false);
+  const [timer,           setTimer]           = useState(0);
+  const [isPlaying,       setIsPlaying]       = useState(false);
+  const [audioUrl,        setAudioUrl]        = useState(null);
+  const [micError,        setMicError]        = useState(null);
+  const [isAnalyzing,     setIsAnalyzing]     = useState(false);
+  const [feedback,        setFeedback]        = useState(null);
+  const [transcript,      setTranscript]      = useState('');
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
 
   const timerRef         = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -224,13 +246,13 @@ export default function MockInterview() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording]);
 
-  const analyzeTranscript = useCallback(async (transcript, question, category) => {
+  const analyzeTranscript = useCallback(async (text, question, category) => {
     setIsAnalyzing(true);
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript, question, category }),
+        body: JSON.stringify({ transcript: text, question, category }),
       });
       if (res.ok) setFeedback(await res.json());
     } catch { /* falls back to placeholder */ }
@@ -238,8 +260,10 @@ export default function MockInterview() {
   }, []);
 
   const startRecording = async () => {
-    setMicError(null); setAudioUrl(null); setFeedback(null); setTimer(0);
+    setMicError(null); setAudioUrl(null); setFeedback(null);
+    setTimer(0); setTranscript(''); setAudioCurrentTime(0);
     transcriptRef.current = '';
+
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SR) {
       const rec = new SR();
@@ -248,6 +272,7 @@ export default function MockInterview() {
         let t = '';
         for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript + ' ';
         transcriptRef.current = t.trim();
+        setTranscript(t.trim()); // live update for real-time display
       };
       rec.start();
       recognitionRef.current = rec;
@@ -275,12 +300,15 @@ export default function MockInterview() {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') mediaRecorderRef.current.stop();
     setIsRecording(false);
     setStep(2);
-    setTimeout(() => analyzeTranscript(transcriptRef.current, q.question, q.category), 500);
+    const finalTranscript = transcriptRef.current;
+    setTranscript(finalTranscript);
+    setTimeout(() => analyzeTranscript(finalTranscript, q.question, q.category), 500);
   }, [q, analyzeTranscript]);
 
   const nextQuestion = () => {
     setQIndex(i => (i + 1) % questions.length);
-    setTimer(0); setIsPlaying(false); setAudioUrl(null); setMicError(null); setFeedback(null);
+    setTimer(0); setIsPlaying(false); setAudioUrl(null); setMicError(null);
+    setFeedback(null); setTranscript(''); setAudioCurrentTime(0);
     setStep(0);
   };
 
@@ -291,7 +319,8 @@ export default function MockInterview() {
     setMode(null); setDifficulty(null); setPendingDiff('medium');
     setStep(0); setQIndex(0); setIsRecording(false); setTimer(0);
     setIsPlaying(false); setAudioUrl(null); setMicError(null);
-    setFeedback(null); setIsAnalyzing(false);
+    setFeedback(null); setTranscript(''); setAudioCurrentTime(0);
+    setIsAnalyzing(false);
   };
 
   const scores  = feedback?.scores  || { Content: 85, Structure: 78, Clarity: 91, Confidence: 72 };
@@ -444,14 +473,38 @@ export default function MockInterview() {
       {/* ── Step 1: Recording ──────────────────────────────────────── */}
       {step === 1 && (
         <div className="iv-record-screen">
+          {/* Left: question + waveform + live transcript */}
           <div className="iv-record-left">
             <div className="iv-record-q-label">Answering</div>
             <p className="iv-record-q-text">{q.question}</p>
-            <div className="waveform-container" style={{ flex: 1 }}>
+            <div className="waveform-container">
               <Waveform isActive={isRecording} />
             </div>
-            {isRecording && <div className="iv-kb-hint" style={{ textAlign: 'center' }}>Press Space to stop</div>}
+            {/* Live transcript panel */}
+            <div className="iv-live-transcript">
+              <div className="iv-live-transcript-header">
+                {isRecording && <span className="iv-live-dot" />}
+                <span className="iv-live-transcript-label">
+                  {isRecording ? 'Live transcript' : 'Transcript preview'}
+                </span>
+                {transcript && (
+                  <span className="iv-live-word-count">{wordCount(transcript)} words</span>
+                )}
+              </div>
+              <div className="iv-live-transcript-body">
+                {transcript
+                  ? <p className="iv-live-transcript-text">{transcript}</p>
+                  : <p className="iv-live-transcript-placeholder">
+                      {isRecording
+                        ? 'Start speaking — your words will appear here…'
+                        : 'Recording not started yet.'}
+                    </p>
+                }
+              </div>
+            </div>
           </div>
+
+          {/* Right: controls */}
           <div className="iv-record-right">
             <div className="recording-header">
               <div className="rec-indicator" style={{ opacity: isRecording ? 1 : 0 }}>
@@ -478,6 +531,7 @@ export default function MockInterview() {
               </button>
             )}
             {micError && <div className="mic-error">{micError}</div>}
+            {isRecording && <div className="iv-kb-hint" style={{ textAlign: 'center' }}>Press Space to stop</div>}
             <button className="iv-back-btn" onClick={() => setStep(0)}>← Back to question</button>
           </div>
         </div>
@@ -486,6 +540,7 @@ export default function MockInterview() {
       {/* ── Step 2: Feedback ───────────────────────────────────────── */}
       {step === 2 && (
         <div className="iv-feedback-screen">
+          {/* Left: score header + audio player + transcript */}
           <div className="iv-feedback-left">
             <div className="feedback-header">
               <span className="feedback-title">AI Feedback</span>
@@ -496,36 +551,85 @@ export default function MockInterview() {
                 }
               </div>
             </div>
-            <audio ref={audioRef} src={audioUrl || undefined} onEnded={() => setIsPlaying(false)} style={{ display: 'none' }} />
-            <div className="video-replay" onClick={() => {
+
+            {/* Hidden audio element */}
+            <audio
+              ref={audioRef}
+              src={audioUrl || undefined}
+              onEnded={() => { setIsPlaying(false); setAudioCurrentTime(0); }}
+              onTimeUpdate={(e) => setAudioCurrentTime(e.target.currentTime)}
+              style={{ display: 'none' }}
+            />
+
+            {/* Compact audio player */}
+            <div className="iv-audio-player" onClick={() => {
               const audio = audioRef.current;
               if (!audio || !audioUrl) return;
-              if (isPlaying) { audio.pause(); audio.currentTime = 0; setIsPlaying(false); }
-              else { audio.play().then(() => setIsPlaying(true)).catch(() => {}); }
+              if (isPlaying) {
+                audio.pause();
+                setIsPlaying(false);
+              } else {
+                audio.currentTime = 0;
+                setAudioCurrentTime(0);
+                audio.play().then(() => setIsPlaying(true)).catch(() => {});
+              }
             }}>
-              <div className="video-placeholder">
-                <div className={`play-btn ${isPlaying ? 'playing' : ''}`}>
-                  {isPlaying ? (
-                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-                      <rect x="6" y="5" width="4" height="16" rx="1.5" fill="#c9a84c"/>
-                      <rect x="16" y="5" width="4" height="16" rx="1.5" fill="#c9a84c"/>
-                    </svg>
-                  ) : (
-                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-                      <path d="M8 5.5l14 7.5-14 7.5V5.5z" fill="#c9a84c"/>
-                    </svg>
-                  )}
-                </div>
-                <span className="video-duration">{fmtTime(timer)}</span>
+              <div className={`iv-audio-play-btn${isPlaying ? ' playing' : ''}`}>
+                {isPlaying ? (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <rect x="3" y="2" width="3" height="12" rx="1" fill="#c9a84c"/>
+                    <rect x="10" y="2" width="3" height="12" rx="1" fill="#c9a84c"/>
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 2.5l10 5.5-10 5.5V2.5z" fill="#c9a84c"/>
+                  </svg>
+                )}
               </div>
-              <div className="video-label">{audioUrl ? 'Your recording — click to replay' : 'No recording captured'}</div>
+              <div className="iv-audio-progress-wrap">
+                <div className="iv-audio-progress-bar">
+                  <div
+                    className="iv-audio-progress-fill"
+                    style={{ width: timer > 0 ? `${(audioCurrentTime / timer) * 100}%` : '0%' }}
+                  />
+                </div>
+                <div className="iv-audio-times">
+                  <span>{fmtTime(Math.round(audioCurrentTime))}</span>
+                  <span>{fmtTime(timer)}</span>
+                </div>
+              </div>
+              {!audioUrl && <span className="iv-audio-unavail">No recording</span>}
             </div>
+
+            {/* Transcript panel */}
+            <div className="iv-transcript-panel">
+              <div className="iv-transcript-header">
+                <span className="iv-transcript-title">Your Answer</span>
+                {transcript && (
+                  <span className="iv-transcript-meta">
+                    {wordCount(transcript)} words · {fmtTime(timer)}
+                    {isPlaying && <span className="iv-transcript-playing"> · Playing</span>}
+                  </span>
+                )}
+              </div>
+              <div className="iv-transcript-scroll">
+                <TranscriptDisplay
+                  text={transcript}
+                  currentTime={audioCurrentTime}
+                  duration={timer}
+                  isPlaying={isPlaying}
+                />
+              </div>
+            </div>
+
+            {/* Question reference */}
             <div className="iv-question-ref">
               <div className="iv-question-ref-label">Question</div>
               <p className="iv-question-ref-text">{q.question}</p>
             </div>
           </div>
 
+          {/* Right: scores + insight + next */}
           <div className="iv-feedback-right">
             <div className="iv-scores-grid">
               {Object.entries(scores).map(([label, score], i) => (
