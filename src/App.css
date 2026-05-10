@@ -1728,3 +1728,300 @@ body {
 }
 
 .save-btn:hover { opacity: 0.88; }
+
+/* ═══════════════════════════════════════════════════════
+   NETWORKING — tabs, outreach log, follow-up alerts
+   ═══════════════════════════════════════════════════════ */
+
+.net-header-btns {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+/* ── Tabs ─────────────────────────────────────────────── */
+
+.net-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding-bottom: 0;
+}
+
+.net-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 16px 12px;
+  color: var(--text-dim);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.18s, border-color 0.18s;
+  margin-bottom: -1px;
+}
+
+.net-tab:hover { color: var(--text); }
+
+.net-tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+  font-weight: 600;
+}
+
+.net-tab-count {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.net-tab.active .net-tab-count {
+  background: rgba(201, 168, 76, 0.15);
+  color: var(--gold);
+}
+
+.net-tab-alert {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ── Follow-up Alert Strip ────────────────────────────── */
+
+.followup-strip {
+  background: rgba(201, 168, 76, 0.05);
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  border-left: 3px solid var(--gold);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.followup-strip-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.followup-strip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.followup-strip-sub {
+  font-weight: 400;
+  color: rgba(201, 168, 76, 0.65);
+}
+
+.followup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.followup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 9px;
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+
+.followup-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.followup-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.followup-dot {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.followup-bank {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.followup-days-pill {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.03em;
+}
+
+.followup-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.followup-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 7px 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.18s;
+  white-space: nowrap;
+}
+
+.followup-btn:hover { opacity: 0.82; }
+
+.followup-btn.responded {
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  color: #4ade80;
+}
+
+.followup-btn.dismiss {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-dim);
+}
+
+/* ── Outreach Table ───────────────────────────────────── */
+
+.outreach-table {
+  max-width: 960px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.outreach-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 110px 1.3fr 130px 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s;
+}
+
+.outreach-row:last-child { border-bottom: none; }
+
+.outreach-row:not(.outreach-row-header):hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.outreach-row.overdue {
+  background: rgba(201, 168, 76, 0.03);
+  border-left: 2px solid rgba(201, 168, 76, 0.4);
+}
+
+.outreach-row-header {
+  background: rgba(255, 255, 255, 0.025);
+  padding: 9px 20px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  cursor: default;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.outreach-purpose {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status select */
+
+.status-select {
+  appearance: none;
+  border: none;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  outline: none;
+  width: 100%;
+  max-width: 130px;
+}
+
+.status-select option { background: #0e0e0e; color: #fff; }
+
+.status-gold {
+  background: rgba(201, 168, 76, 0.14);
+  border: 1px solid rgba(201, 168, 76, 0.3) !important;
+  color: var(--gold);
+}
+
+.status-green {
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3) !important;
+  color: #4ade80;
+}
+
+.status-red {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444;
+}
+
+/* Age badge */
+
+.age-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.age-badge.overdue {
+  color: #ef4444;
+}
+
+/* Modal subtitle */
+
+.modal-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: -16px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
