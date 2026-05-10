@@ -27,7 +27,7 @@ function fmtDate(d) {
 export default function Networking() {
   const [calls,    setCalls]    = useState(() => load('pd-calls'));
   const [outreach, setOutreach] = useState(() => load('pd-outreach'));
-  const [tab,      setTab]      = useState('calls'); // 'calls' | 'outreach'
+  const [tab,      setTab]      = useState('outreach'); // 'outreach' | 'calls'
 
   const [showCallModal, setShowCallModal]       = useState(false);
   const [showOutModal,  setShowOutModal]         = useState(false);
@@ -96,6 +96,13 @@ export default function Networking() {
     setOutreach(updated); save('pd-outreach', updated);
   };
 
+  // Pre-fill the call form from an outreach entry, flip to Call Log, open modal
+  const logCallFromOutreach = o => {
+    setCallForm({ ...BLANK_CALL, bank: o.bank, contact: o.contact, role: o.role });
+    setTab('calls');
+    setShowCallModal(true);
+  };
+
   const statusCls = s =>
     s === 'Responded' || s === 'Meeting Scheduled' ? 'status-green' :
     s === 'No Response' ? 'status-red' : 'status-gold';
@@ -113,19 +120,19 @@ export default function Networking() {
           </p>
         </div>
         <div className="net-header-btns">
-          {tab === 'calls' ? (
-            <button className="log-btn" onClick={() => setShowCallModal(true)}>
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1v12M1 7h12" stroke="#000" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              Log New Call
-            </button>
-          ) : (
+          {tab === 'outreach' ? (
             <button className="log-btn" onClick={() => setShowOutModal(true)}>
               <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
                 <path d="M7 1v12M1 7h12" stroke="#000" strokeWidth="2" strokeLinecap="round"/>
               </svg>
               Log Outreach
+            </button>
+          ) : (
+            <button className="log-btn" onClick={() => setShowCallModal(true)}>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1v12M1 7h12" stroke="#000" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Log New Call
             </button>
           )}
         </div>
@@ -169,14 +176,14 @@ export default function Networking() {
 
       {/* ── Tabs ───────────────────────────────────────────────────────── */}
       <div className="net-tabs">
-        <button className={`net-tab${tab === 'calls' ? ' active' : ''}`} onClick={() => setTab('calls')}>
-          Call Log
-          {calls.length > 0 && <span className="net-tab-count">{calls.length}</span>}
-        </button>
         <button className={`net-tab${tab === 'outreach' ? ' active' : ''}`} onClick={() => setTab('outreach')}>
           Outreach Log
           {outreach.length > 0 && <span className="net-tab-count">{outreach.length}</span>}
           {overdue.length > 0 && <span className="net-tab-alert">{overdue.length}</span>}
+        </button>
+        <button className={`net-tab${tab === 'calls' ? ' active' : ''}`} onClick={() => setTab('calls')}>
+          Call Log
+          {calls.length > 0 && <span className="net-tab-count">{calls.length}</span>}
         </button>
       </div>
 
@@ -293,7 +300,7 @@ export default function Networking() {
               <span>Date Sent</span>
               <span>Purpose</span>
               <span>Status</span>
-              <span>Age</span>
+              <span>Action</span>
             </div>
             {sortedOut.map(o => {
               const days    = daysSince(o.emailDate);
@@ -317,8 +324,19 @@ export default function Networking() {
                       {OUT_STATUSES.map(s => <option key={s}>{s}</option>)}
                     </select>
                   </div>
-                  <div className={`age-badge${isOver ? ' overdue' : ''}`}>
-                    {o.status === 'Pending' ? `${days}d` : '—'}
+                  <div>
+                    {(o.status === 'Responded' || o.status === 'Meeting Scheduled') ? (
+                      <button
+                        className="log-call-inline-btn"
+                        onClick={e => { e.stopPropagation(); logCallFromOutreach(o); }}
+                      >
+                        Log Call →
+                      </button>
+                    ) : o.status === 'Pending' ? (
+                      <span className={`age-badge${isOver ? ' overdue' : ''}`}>{days}d</span>
+                    ) : (
+                      <span className="age-badge">—</span>
+                    )}
                   </div>
                 </div>
               );

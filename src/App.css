@@ -1927,7 +1927,7 @@ body {
 
 .outreach-row {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 110px 1.3fr 130px 52px;
+  grid-template-columns: 1.4fr 1fr 110px 1.3fr 130px 90px;
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
@@ -2017,6 +2017,28 @@ body {
 }
 
 /* Modal subtitle */
+
+/* Inline "Log Call" button that appears in outreach rows after a response */
+
+.log-call-inline-btn {
+  background: rgba(201, 168, 76, 0.1);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  color: var(--gold);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s, transform 0.15s;
+  letter-spacing: 0.02em;
+}
+
+.log-call-inline-btn:hover {
+  background: rgba(201, 168, 76, 0.2);
+  transform: translateX(2px);
+}
 
 .modal-sub {
   font-size: 13px;
