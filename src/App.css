@@ -2065,3 +2065,277 @@ body {
   margin-bottom: 20px;
   line-height: 1.5;
 }
+
+/* ═══════════════════════════════════════════════════════
+   MOCK INTERVIEW — Desktop layout
+   ═══════════════════════════════════════════════════════ */
+
+.interview-desktop {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 36px 48px;
+  gap: 32px;
+  overflow-y: auto;
+}
+
+/* ─── Step indicator ──────────────────────────────────── */
+
+.iv-steps {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.iv-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iv-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  transition: border-color 0.25s, background 0.25s, color 0.25s;
+}
+
+.iv-step-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  transition: color 0.25s;
+}
+
+.iv-step.active .iv-step-num {
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.1);
+  color: var(--gold);
+}
+
+.iv-step.active .iv-step-label {
+  color: var(--text);
+}
+
+.iv-step.done .iv-step-num {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--black);
+  font-size: 13px;
+}
+
+.iv-step.done .iv-step-label {
+  color: var(--text-dim);
+}
+
+.iv-step-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  min-width: 40px;
+  max-width: 80px;
+  margin: 0 8px;
+  transition: background 0.25s;
+}
+
+.iv-step-line.done {
+  background: rgba(201, 168, 76, 0.45);
+}
+
+/* ─── Step 0: Question screen ─────────────────────────── */
+
+.iv-question-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding-bottom: 24px;
+}
+
+.iv-question-card {
+  width: 100%;
+  max-width: 740px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.iv-question-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.iv-question-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.iv-begin-btn {
+  padding: 14px 32px;
+  font-size: 15px;
+}
+
+.iv-skip-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.18s;
+}
+
+.iv-skip-btn:hover {
+  color: var(--text);
+}
+
+.iv-kb-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.25);
+  margin-left: 4px;
+}
+
+/* ─── Step 1: Recording screen ────────────────────────── */
+
+.iv-record-screen {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 28px;
+  min-height: 0;
+}
+
+.iv-record-left {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 28px 32px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.iv-record-right {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 28px;
+}
+
+.iv-record-q-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.iv-record-q-text {
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.iv-back-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: color 0.18s;
+  margin-top: auto;
+}
+
+.iv-back-btn:hover {
+  color: var(--text);
+}
+
+/* ─── Step 2: Feedback screen ─────────────────────────── */
+
+.iv-feedback-screen {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  min-height: 0;
+}
+
+.iv-feedback-left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 28px 32px;
+  overflow-y: auto;
+}
+
+.iv-feedback-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 28px 32px;
+  overflow-y: auto;
+}
+
+.iv-scores-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px 12px;
+  padding: 4px 0;
+}
+
+.iv-question-ref {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.iv-question-ref-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.iv-question-ref-text {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.55);
+}
