@@ -1927,7 +1927,7 @@ body {
 
 .outreach-row {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 110px 1.3fr 130px 90px;
+  grid-template-columns: 1.4fr 1fr 110px 1.3fr 130px 90px 28px;
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
@@ -2019,6 +2019,24 @@ body {
 /* Modal subtitle */
 
 /* Inline "Log Call" button that appears in outreach rows after a response */
+
+.outreach-delete-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.18);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 5px;
+  transition: color 0.15s, background 0.15s;
+  align-self: center;
+}
+
+.outreach-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
 
 .log-call-inline-btn {
   background: rgba(201, 168, 76, 0.1);

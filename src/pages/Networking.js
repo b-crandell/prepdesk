@@ -318,6 +318,7 @@ export default function Networking() {
               <span>Purpose</span>
               <span>Status</span>
               <span>Action</span>
+              <span></span>
             </div>
             {sortedOut.map(o => {
               const days    = daysSince(o.emailDate);
@@ -355,6 +356,11 @@ export default function Networking() {
                       <span className="age-badge">—</span>
                     )}
                   </div>
+                  <button
+                    className="outreach-delete-btn"
+                    title="Delete entry"
+                    onClick={e => { e.stopPropagation(); deleteOutreach(o.id); }}
+                  >×</button>
                 </div>
               );
             })}
