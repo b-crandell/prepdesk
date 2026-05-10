@@ -146,18 +146,32 @@ function ScoreRing({ score, label, delay = 0 }) {
   );
 }
 
-/* Word-highlighted transcript — highlights current word during playback */
-function TranscriptDisplay({ text, currentTime, duration, isPlaying }) {
+/* Word-highlighted transcript — highlights current word during playback.
+   Uses phrase timestamps when available (Path 1), falls back to uniform
+   proportion when not. */
+function TranscriptDisplay({ text, currentTime, duration, isPlaying, wordTimestamps }) {
   if (!text) return (
     <p className="iv-transcript-empty">
       No transcript captured — make sure your browser allows microphone access and supports speech recognition.
     </p>
   );
+
   const words = text.split(/\s+/).filter(Boolean);
   const totalWords = words.length;
-  const activeIdx = (isPlaying && duration > 0)
-    ? Math.min(Math.floor((currentTime / duration) * totalWords), totalWords - 1)
-    : -1;
+
+  let activeIdx = -1;
+  if (isPlaying) {
+    if (wordTimestamps && wordTimestamps.length > 0) {
+      // Timestamp-based lookup: last entry whose time ≤ currentTime
+      for (let i = 0; i < Math.min(wordTimestamps.length, totalWords); i++) {
+        if (wordTimestamps[i].time <= currentTime) activeIdx = i;
+        else break;
+      }
+    } else if (duration > 0) {
+      // Proportional fallback
+      activeIdx = Math.min(Math.floor((currentTime / duration) * totalWords), totalWords - 1);
+    }
+  }
 
   return (
     <p className="iv-transcript-text">
@@ -165,7 +179,7 @@ function TranscriptDisplay({ text, currentTime, duration, isPlaying }) {
         <span
           key={i}
           className={
-            i < activeIdx  ? 'iv-word spoken'
+            i < activeIdx   ? 'iv-word spoken'
             : i === activeIdx ? 'iv-word current'
             : 'iv-word'
           }
@@ -202,15 +216,19 @@ export default function MockInterview() {
   const [micError,        setMicError]        = useState(null);
   const [isAnalyzing,     setIsAnalyzing]     = useState(false);
   const [feedback,        setFeedback]        = useState(null);
-  const [transcript,      setTranscript]      = useState('');
+  const [transcript,       setTranscript]       = useState('');
+  const [wordTimestamps,   setWordTimestamps]   = useState([]);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
 
-  const timerRef         = useRef(null);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef   = useRef([]);
-  const audioRef         = useRef(null);
-  const recognitionRef   = useRef(null);
-  const transcriptRef    = useRef('');
+  const timerRef           = useRef(null);
+  const mediaRecorderRef   = useRef(null);
+  const audioChunksRef     = useRef([]);
+  const audioRef           = useRef(null);
+  const recognitionRef     = useRef(null);
+  const transcriptRef      = useRef('');
+  const recordingStartRef  = useRef(0);   // performance.now() when mic opened
+  const wordTimestampsRef  = useRef([]);  // accumulates {word, time} during recording
+  const lastPhraseEndRef   = useRef(0);   // elapsed seconds at end of last final phrase
 
   const questions = mode === 'networking' ? NETWORKING_QUESTIONS
                   : mode === 'firstround' ? FIRSTROUND_QUESTIONS
@@ -261,21 +279,43 @@ export default function MockInterview() {
 
   const startRecording = async () => {
     setMicError(null); setAudioUrl(null); setFeedback(null);
-    setTimer(0); setTranscript(''); setAudioCurrentTime(0);
-    transcriptRef.current = '';
+    setTimer(0); setTranscript(''); setWordTimestamps([]); setAudioCurrentTime(0);
+    transcriptRef.current    = '';
+    wordTimestampsRef.current = [];
+    lastPhraseEndRef.current  = 0;
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SR) {
       const rec = new SR();
       rec.continuous = true; rec.interimResults = true; rec.lang = 'en-US';
       rec.onresult = (e) => {
+        // Rebuild full transcript from all results (existing live-display logic)
         let t = '';
         for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript + ' ';
         transcriptRef.current = t.trim();
-        setTranscript(t.trim()); // live update for real-time display
+        setTranscript(t.trim());
+
+        // Capture phrase-level timestamps for new *final* results only
+        const now = (performance.now() - recordingStartRef.current) / 1000;
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) {
+            const phraseWords = e.results[i][0].transcript.trim().split(/\s+/).filter(Boolean);
+            const phraseStart = lastPhraseEndRef.current;
+            const phraseDur   = Math.max(now - phraseStart, 0.05);
+            // Distribute words evenly across the phrase window
+            phraseWords.forEach((word, idx) => {
+              wordTimestampsRef.current.push({
+                word,
+                time: phraseStart + (idx / phraseWords.length) * phraseDur,
+              });
+            });
+            lastPhraseEndRef.current = now;
+          }
+        }
       };
       rec.start();
-      recognitionRef.current = rec;
+      recognitionRef.current  = rec;
+      recordingStartRef.current = performance.now(); // mark start after rec.start()
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -302,13 +342,15 @@ export default function MockInterview() {
     setStep(2);
     const finalTranscript = transcriptRef.current;
     setTranscript(finalTranscript);
+    setWordTimestamps([...wordTimestampsRef.current]); // flush phrase timestamps to state
     setTimeout(() => analyzeTranscript(finalTranscript, q.question, q.category), 500);
   }, [q, analyzeTranscript]);
 
   const nextQuestion = () => {
     setQIndex(i => (i + 1) % questions.length);
     setTimer(0); setIsPlaying(false); setAudioUrl(null); setMicError(null);
-    setFeedback(null); setTranscript(''); setAudioCurrentTime(0);
+    setFeedback(null); setTranscript(''); setWordTimestamps([]); setAudioCurrentTime(0);
+    wordTimestampsRef.current = []; lastPhraseEndRef.current = 0;
     setStep(0);
   };
 
@@ -319,7 +361,8 @@ export default function MockInterview() {
     setMode(null); setDifficulty(null); setPendingDiff('medium');
     setStep(0); setQIndex(0); setIsRecording(false); setTimer(0);
     setIsPlaying(false); setAudioUrl(null); setMicError(null);
-    setFeedback(null); setTranscript(''); setAudioCurrentTime(0);
+    setFeedback(null); setTranscript(''); setWordTimestamps([]); setAudioCurrentTime(0);
+    wordTimestampsRef.current = []; lastPhraseEndRef.current = 0;
     setIsAnalyzing(false);
   };
 
@@ -618,6 +661,7 @@ export default function MockInterview() {
                   currentTime={audioCurrentTime}
                   duration={timer}
                   isPlaying={isPlaying}
+                  wordTimestamps={wordTimestamps}
                 />
               </div>
             </div>
