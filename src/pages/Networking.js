@@ -5,8 +5,23 @@ const OUT_PURPOSES    = ['Introduction / Networking', 'Coffee Chat Request', 'Th
 const OUT_STATUSES    = ['Pending', 'Responded', 'Meeting Scheduled', 'No Response'];
 const FOLLOW_UP_DAYS  = 7;
 
-const BLANK_CALL = { bank: '', contact: '', role: '', date: '', type: 'Coffee Chat', notes: '', followUp: '' };
+const FOLLOW_UP_OPTIONS = [
+  { label: '24 hours',  value: '24h', days: 1 },
+  { label: '48 hours',  value: '48h', days: 2 },
+  { label: '1 week',    value: '1w',  days: 7 },
+];
+
+const BLANK_CALL = { bank: '', contact: '', role: '', date: '', type: 'Coffee Chat', notes: '', followUpInterval: '24h' };
 const BLANK_OUT  = { bank: '', contact: '', role: '', emailDate: '', purpose: 'Introduction / Networking', notes: '' };
+
+// Adds N days to a YYYY-MM-DD string (or today) without timezone drift
+function addDays(dateStr, n) {
+  const base = dateStr ? dateStr.split('-').map(Number) : (() => {
+    const t = new Date(); return [t.getFullYear(), t.getMonth() + 1, t.getDate()];
+  })();
+  const d = new Date(base[0], base[1] - 1, base[2] + n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
@@ -58,7 +73,9 @@ export default function Networking() {
     if (!callForm.contact.trim()) e.contact = 'Required';
     if (!callForm.date)           e.date    = 'Required';
     if (Object.keys(e).length)    { setCallErr(e); return; }
-    const newCall = { ...callForm, id: `${Date.now()}`, bank: callForm.bank.trim() };
+    const intervalDays = FOLLOW_UP_OPTIONS.find(o => o.value === callForm.followUpInterval)?.days ?? 1;
+    const followUp = addDays(callForm.date, intervalDays);
+    const newCall = { ...callForm, id: `${Date.now()}`, bank: callForm.bank.trim(), followUp };
     const updated = [newCall, ...calls];
     setCalls(updated); save('pd-calls', updated);
     setShowCallModal(false); setCallForm(BLANK_CALL); setCallErr({});
@@ -377,8 +394,12 @@ export default function Networking() {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Follow-up Date</label>
-                <input type="date" className="form-input" value={callForm.followUp} onChange={setC('followUp')} />
+                <label className="form-label">Thank you note follow-up</label>
+                <select className="form-select form-input" value={callForm.followUpInterval} onChange={setC('followUpInterval')}>
+                  {FOLLOW_UP_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
               </div>
               <div className="form-group full">
                 <label className="form-label">Notes</label>
