@@ -130,21 +130,20 @@ function Waveform({ isActive }) {
   );
 }
 
-function ScoreRing({ score, label, delay = 0 }) {
-  const r = 28, circ = 2 * Math.PI * r, offset = circ - (score / 100) * circ;
-  return (
-    <div className="score-ring-container" style={{ animationDelay: `${delay}s` }}>
-      <svg width="72" height="72" viewBox="0 0 72 72">
-        <circle cx="36" cy="36" r={r} fill="none" stroke="#1a1a1a" strokeWidth="4" />
-        <circle cx="36" cy="36" r={r} fill="none" stroke="#c9a84c" strokeWidth="4"
-          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-          transform="rotate(-90 36 36)" className="score-arc" />
-        <text x="36" y="41" textAnchor="middle" fill="#fff" fontSize="14" fontFamily="DM Sans, sans-serif" fontWeight="700">{score}</text>
-      </svg>
-      <span className="score-ring-label">{label}</span>
-    </div>
-  );
-}
+/* ─── Self-review questions ──────────────────────────────────── */
+
+const SELF_REVIEW = [
+  { id: 'clear',      group: 'Delivery',   q: 'Is your speech clear and easy to understand?' },
+  { id: 'pace',       group: 'Delivery',   q: 'Is your pace comfortable — not rushing or dragging?' },
+  { id: 'confident',  group: 'Delivery',   q: 'Do you sound confident throughout?' },
+  { id: 'smooth',     group: 'Delivery',   q: 'Delivery felt smooth — no awkward pauses or volume drops?' },
+  { id: 'addresses',  group: 'Content',    q: 'Does your answer directly address the question?' },
+  { id: 'examples',   group: 'Content',    q: 'Did you use specific examples or concrete details?' },
+  { id: 'conclusion', group: 'Structure',  q: 'Did you lead with your main point first?' },
+  { id: 'flow',       group: 'Structure',  q: 'Is there a clear, logical flow to your answer?' },
+];
+
+const SR_GROUPS = ['Delivery', 'Content', 'Structure'];
 
 /* ─── Filler word detection ──────────────────────────────────── */
 
@@ -277,6 +276,7 @@ export default function MockInterview() {
   const [wordTimestamps,   setWordTimestamps]   = useState([]);
   const [fillerData,       setFillerData]       = useState(null);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [selfReview,       setSelfReview]       = useState({});
 
   const timerRef           = useRef(null);
   const mediaRecorderRef   = useRef(null);
@@ -337,7 +337,7 @@ export default function MockInterview() {
 
   const startRecording = async () => {
     setMicError(null); setAudioUrl(null); setFeedback(null);
-    setTimer(0); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0);
+    setTimer(0); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0); setSelfReview({});
     transcriptRef.current    = '';
     wordTimestampsRef.current = [];
     lastPhraseEndRef.current  = 0;
@@ -408,7 +408,7 @@ export default function MockInterview() {
   const nextQuestion = () => {
     setQIndex(i => (i + 1) % questions.length);
     setTimer(0); setIsPlaying(false); setAudioUrl(null); setMicError(null);
-    setFeedback(null); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0);
+    setFeedback(null); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0); setSelfReview({});
     wordTimestampsRef.current = []; lastPhraseEndRef.current = 0;
     setStep(0);
   };
@@ -420,16 +420,16 @@ export default function MockInterview() {
     setMode(null); setDifficulty(null); setPendingDiff('medium');
     setStep(0); setQIndex(0); setIsRecording(false); setTimer(0);
     setIsPlaying(false); setAudioUrl(null); setMicError(null);
-    setFeedback(null); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0);
+    setFeedback(null); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0); setSelfReview({});
     wordTimestampsRef.current = []; lastPhraseEndRef.current = 0;
     setIsAnalyzing(false);
   };
 
-  const scores  = feedback?.scores  || { Content: 85, Structure: 78, Clarity: 91, Confidence: 72 };
-  const overall = feedback?.overall || Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / 4);
   const insight = feedback?.insight || 'Strong technical foundation. Consider leading with the conclusion — interviewers want the answer before the methodology.';
   const wpm     = (transcript && timer > 0) ? Math.round((wordCount(transcript) / timer) * 60) : 0;
   const wpmData = wpmInfo(wpm);
+  const toggleReview = (id, val) =>
+    setSelfReview(prev => ({ ...prev, [id]: prev[id] === val ? null : val }));
 
   const activeType = INTERVIEW_TYPES.find(t => t.id === mode);
 
@@ -647,13 +647,7 @@ export default function MockInterview() {
           {/* Left: score header + audio player + transcript */}
           <div className="iv-feedback-left">
             <div className="feedback-header">
-              <span className="feedback-title">AI Feedback</span>
-              <div className="overall-score">
-                {isAnalyzing
-                  ? <span className="analyzing-label">Analyzing…</span>
-                  : <><span className="overall-number">{overall}</span><span className="overall-label">/100</span></>
-                }
-              </div>
+              <span className="feedback-title">Review Your Answer</span>
             </div>
 
             {/* Hidden audio element */}
@@ -735,11 +729,34 @@ export default function MockInterview() {
             </div>
           </div>
 
-          {/* Right: scores + filler words + insight + next */}
+          {/* Right: self-review + wpm + filler + coach tip + next */}
           <div className="iv-feedback-right">
-            <div className="iv-scores-grid">
-              {Object.entries(scores).map(([label, score], i) => (
-                <ScoreRing key={label} score={score} label={label} delay={i * 0.1} />
+
+            {/* Self-review checklist */}
+            <div className="iv-self-review">
+              <div className="iv-sr-header">
+                <span className="iv-sr-title">Self-Review</span>
+                <span className="iv-sr-hint">Listen back and check off what you notice</span>
+              </div>
+              {SR_GROUPS.map(group => (
+                <div key={group} className="iv-sr-group">
+                  <div className="iv-sr-group-label">{group}</div>
+                  {SELF_REVIEW.filter(item => item.group === group).map(({ id, q }) => (
+                    <div key={id} className="iv-sr-item">
+                      <span className="iv-sr-question">{q}</span>
+                      <div className="iv-sr-btns">
+                        <button
+                          className={`iv-sr-btn iv-sr-yes${selfReview[id] === true ? ' selected' : ''}`}
+                          onClick={() => toggleReview(id, true)}
+                        >Yes</button>
+                        <button
+                          className={`iv-sr-btn iv-sr-no${selfReview[id] === false ? ' selected' : ''}`}
+                          onClick={() => toggleReview(id, false)}
+                        >No</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ))}
             </div>
 
@@ -809,9 +826,9 @@ export default function MockInterview() {
             <div className="ai-insight">
               <div className="ai-insight-header">
                 <span className="ai-badge">AI</span>
-                <span className="ai-insight-label">Key Insight</span>
+                <span className="ai-insight-label">Coach Tip</span>
               </div>
-              <p className="ai-insight-text">{isAnalyzing ? 'Analyzing your response…' : insight}</p>
+              <p className="ai-insight-text">{isAnalyzing ? 'Generating coaching tip…' : insight}</p>
             </div>
             <button className="next-button" onClick={nextQuestion}>
               Next Question
