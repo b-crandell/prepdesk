@@ -146,10 +146,63 @@ function ScoreRing({ score, label, delay = 0 }) {
   );
 }
 
+/* ─── Filler word detection ──────────────────────────────────── */
+
+// Multi-word fillers must come first so they're matched before their parts
+const FILLER_WORDS = [
+  'you know', 'i mean', 'kind of', 'sort of',
+  'um', 'uh', 'uhh', 'umm', 'hmm', 'hm', 'mhm',
+  'like', 'basically', 'literally', 'right',
+];
+
+function analyzeFillers(transcript) {
+  if (!transcript) return { counts: {}, total: 0, fillerIndices: new Set() };
+
+  const words       = transcript.trim().split(/\s+/).filter(Boolean);
+  const clean       = words.map(w => w.toLowerCase().replace(/[.,!?;:'"()-]+/g, ''));
+  const fillerIndices = new Set();
+  const counts      = {};
+
+  // Sort longest first so multi-word phrases match before single words
+  const sorted = [...FILLER_WORDS].sort((a, b) => b.split(' ').length - a.split(' ').length);
+
+  sorted.forEach(filler => {
+    const fw = filler.split(' ');
+    if (fw.length === 1) {
+      clean.forEach((w, i) => {
+        if (w === filler && !fillerIndices.has(i)) {
+          fillerIndices.add(i);
+          counts[filler] = (counts[filler] || 0) + 1;
+        }
+      });
+    } else {
+      for (let i = 0; i <= clean.length - fw.length; i++) {
+        if (fw.every((fw_w, j) => clean[i + j] === fw_w) &&
+            !fw.some((_, j) => fillerIndices.has(i + j))) {
+          for (let j = 0; j < fw.length; j++) fillerIndices.add(i + j);
+          counts[filler] = (counts[filler] || 0) + 1;
+        }
+      }
+    }
+  });
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { counts, total, fillerIndices };
+}
+
+function fillerSeverity(total) {
+  if (total === 0)  return 'filler-none';
+  if (total <= 3)   return 'filler-low';
+  if (total <= 7)   return 'filler-mid';
+  return 'filler-high';
+}
+
+/* ─── Transcript display ─────────────────────────────────────── */
+
 /* Word-highlighted transcript — highlights current word during playback.
    Uses phrase timestamps when available (Path 1), falls back to uniform
-   proportion when not. */
-function TranscriptDisplay({ text, currentTime, duration, isPlaying, wordTimestamps }) {
+   proportion when not. Filler words are highlighted orange at rest. */
+function TranscriptDisplay({ text, currentTime, duration, isPlaying, wordTimestamps, fillerIndices }) {
   if (!text) return (
     <p className="iv-transcript-empty">
       No transcript captured — make sure your browser allows microphone access and supports speech recognition.
@@ -162,31 +215,26 @@ function TranscriptDisplay({ text, currentTime, duration, isPlaying, wordTimesta
   let activeIdx = -1;
   if (isPlaying) {
     if (wordTimestamps && wordTimestamps.length > 0) {
-      // Timestamp-based lookup: last entry whose time ≤ currentTime
       for (let i = 0; i < Math.min(wordTimestamps.length, totalWords); i++) {
         if (wordTimestamps[i].time <= currentTime) activeIdx = i;
         else break;
       }
     } else if (duration > 0) {
-      // Proportional fallback
       activeIdx = Math.min(Math.floor((currentTime / duration) * totalWords), totalWords - 1);
     }
   }
 
   return (
     <p className="iv-transcript-text">
-      {words.map((word, i) => (
-        <span
-          key={i}
-          className={
-            i < activeIdx   ? 'iv-word spoken'
-            : i === activeIdx ? 'iv-word current'
-            : 'iv-word'
-          }
-        >
-          {word}{' '}
-        </span>
-      ))}
+      {words.map((word, i) => {
+        const isFiller  = fillerIndices?.has(i);
+        const cls =
+          i === activeIdx ? 'iv-word current'
+          : i < activeIdx ? 'iv-word spoken'
+          : isFiller      ? 'iv-word filler'
+          : 'iv-word';
+        return <span key={i} className={cls}>{word}{' '}</span>;
+      })}
     </p>
   );
 }
@@ -218,6 +266,7 @@ export default function MockInterview() {
   const [feedback,        setFeedback]        = useState(null);
   const [transcript,       setTranscript]       = useState('');
   const [wordTimestamps,   setWordTimestamps]   = useState([]);
+  const [fillerData,       setFillerData]       = useState(null);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
 
   const timerRef           = useRef(null);
@@ -279,7 +328,7 @@ export default function MockInterview() {
 
   const startRecording = async () => {
     setMicError(null); setAudioUrl(null); setFeedback(null);
-    setTimer(0); setTranscript(''); setWordTimestamps([]); setAudioCurrentTime(0);
+    setTimer(0); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0);
     transcriptRef.current    = '';
     wordTimestampsRef.current = [];
     lastPhraseEndRef.current  = 0;
@@ -342,14 +391,15 @@ export default function MockInterview() {
     setStep(2);
     const finalTranscript = transcriptRef.current;
     setTranscript(finalTranscript);
-    setWordTimestamps([...wordTimestampsRef.current]); // flush phrase timestamps to state
+    setWordTimestamps([...wordTimestampsRef.current]);
+    setFillerData(analyzeFillers(finalTranscript));
     setTimeout(() => analyzeTranscript(finalTranscript, q.question, q.category), 500);
   }, [q, analyzeTranscript]);
 
   const nextQuestion = () => {
     setQIndex(i => (i + 1) % questions.length);
     setTimer(0); setIsPlaying(false); setAudioUrl(null); setMicError(null);
-    setFeedback(null); setTranscript(''); setWordTimestamps([]); setAudioCurrentTime(0);
+    setFeedback(null); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0);
     wordTimestampsRef.current = []; lastPhraseEndRef.current = 0;
     setStep(0);
   };
@@ -361,7 +411,7 @@ export default function MockInterview() {
     setMode(null); setDifficulty(null); setPendingDiff('medium');
     setStep(0); setQIndex(0); setIsRecording(false); setTimer(0);
     setIsPlaying(false); setAudioUrl(null); setMicError(null);
-    setFeedback(null); setTranscript(''); setWordTimestamps([]); setAudioCurrentTime(0);
+    setFeedback(null); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0);
     wordTimestampsRef.current = []; lastPhraseEndRef.current = 0;
     setIsAnalyzing(false);
   };
@@ -662,6 +712,7 @@ export default function MockInterview() {
                   duration={timer}
                   isPlaying={isPlaying}
                   wordTimestamps={wordTimestamps}
+                  fillerIndices={fillerData?.fillerIndices}
                 />
               </div>
             </div>
@@ -673,13 +724,49 @@ export default function MockInterview() {
             </div>
           </div>
 
-          {/* Right: scores + insight + next */}
+          {/* Right: scores + filler words + insight + next */}
           <div className="iv-feedback-right">
             <div className="iv-scores-grid">
               {Object.entries(scores).map(([label, score], i) => (
                 <ScoreRing key={label} score={score} label={label} delay={i * 0.1} />
               ))}
             </div>
+
+            {/* Filler word panel */}
+            {fillerData && (
+              <div className="iv-filler-panel">
+                <div className="iv-filler-header">
+                  <span className="iv-filler-title">Filler Words</span>
+                  <span className={`iv-filler-total ${fillerSeverity(fillerData.total)}`}>
+                    {fillerData.total === 0 ? 'None' : `${fillerData.total} detected`}
+                  </span>
+                </div>
+                {fillerData.total === 0 ? (
+                  <p className="iv-filler-clean">Clean delivery — no filler words detected.</p>
+                ) : (
+                  <div className="iv-filler-breakdown">
+                    {Object.entries(fillerData.counts)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([word, count]) => (
+                        <div key={word} className="iv-filler-item">
+                          <span className="iv-filler-word">"{word}"</span>
+                          <span className="iv-filler-bar-wrap">
+                            <span
+                              className="iv-filler-bar"
+                              style={{ width: `${Math.min((count / fillerData.total) * 100, 100)}%` }}
+                            />
+                          </span>
+                          <span className="iv-filler-count">{count}×</span>
+                        </div>
+                      ))}
+                    <p className="iv-filler-tip">
+                      Highlighted in orange in your transcript above.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="ai-insight">
               <div className="ai-insight-header">
                 <span className="ai-badge">AI</span>
