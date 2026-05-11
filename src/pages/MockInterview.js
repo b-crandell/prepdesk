@@ -197,6 +197,15 @@ function fillerSeverity(total) {
   return 'filler-high';
 }
 
+function wpmInfo(wpm) {
+  if (wpm === 0)   return { label: '—',             cls: 'wpm-none'  };
+  if (wpm < 110)   return { label: 'Too Slow',      cls: 'wpm-slow'  };
+  if (wpm <= 130)  return { label: 'Good Pace',     cls: 'wpm-good'  };
+  if (wpm <= 160)  return { label: 'Ideal Pace',    cls: 'wpm-ideal' };
+  if (wpm <= 180)  return { label: 'Slightly Fast', cls: 'wpm-fast'  };
+  return           { label: 'Too Fast',     cls: 'wpm-vfast' };
+}
+
 /* ─── Transcript display ─────────────────────────────────────── */
 
 /* Word-highlighted transcript — highlights current word during playback.
@@ -419,6 +428,8 @@ export default function MockInterview() {
   const scores  = feedback?.scores  || { Content: 85, Structure: 78, Clarity: 91, Confidence: 72 };
   const overall = feedback?.overall || Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / 4);
   const insight = feedback?.insight || 'Strong technical foundation. Consider leading with the conclusion — interviewers want the answer before the methodology.';
+  const wpm     = (transcript && timer > 0) ? Math.round((wordCount(transcript) / timer) * 60) : 0;
+  const wpmData = wpmInfo(wpm);
 
   const activeType = INTERVIEW_TYPES.find(t => t.id === mode);
 
@@ -731,6 +742,34 @@ export default function MockInterview() {
                 <ScoreRing key={label} score={score} label={label} delay={i * 0.1} />
               ))}
             </div>
+
+            {/* WPM gauge */}
+            {transcript && timer > 0 && (
+              <div className="iv-wpm-panel">
+                <div className="iv-wpm-header">
+                  <span className="iv-wpm-title">Speaking Pace</span>
+                  <span className={`iv-wpm-badge ${wpmData.cls}`}>{wpmData.label}</span>
+                </div>
+                <div className="iv-wpm-number-row">
+                  <span className="iv-wpm-number">{wpm}</span>
+                  <span className="iv-wpm-unit">wpm</span>
+                </div>
+                <div className="iv-wpm-track-wrap">
+                  <div className="iv-wpm-track">
+                    <div className="iv-wpm-zone wpm-zone-slow" />
+                    <div className="iv-wpm-zone wpm-zone-ideal" />
+                    <div className="iv-wpm-zone wpm-zone-fast" />
+                    <div className="iv-wpm-needle" style={{ left: `${Math.min((wpm / 220) * 100, 99)}%` }} />
+                  </div>
+                  <div className="iv-wpm-zone-labels">
+                    <span>Slow</span>
+                    <span>Ideal</span>
+                    <span>Fast</span>
+                  </div>
+                </div>
+                <p className="iv-wpm-tip">Target: 110–160 words per minute</p>
+              </div>
+            )}
 
             {/* Filler word panel */}
             {fillerData && (
