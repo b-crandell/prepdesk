@@ -132,15 +132,28 @@ function Waveform({ isActive }) {
 
 /* ─── Self-review questions ──────────────────────────────────── */
 
-const SELF_REVIEW = [
+const BEHAVIORAL_REVIEW = [
   { id: 'clear',      group: 'Delivery',   q: 'Is your speech clear and easy to understand?' },
   { id: 'pace',       group: 'Delivery',   q: 'Is your pace comfortable — not rushing or dragging?' },
   { id: 'confident',  group: 'Delivery',   q: 'Do you sound confident throughout?' },
   { id: 'smooth',     group: 'Delivery',   q: 'Delivery felt smooth — no awkward pauses or volume drops?' },
   { id: 'addresses',  group: 'Content',    q: 'Does your answer directly address the question?' },
-  { id: 'examples',   group: 'Content',    q: 'Did you use specific examples or concrete details?' },
+  { id: 'star',       group: 'Content',    q: 'Did you follow a clear structure (situation → action → result)?' },
+  { id: 'concrete',   group: 'Content',    q: 'Did you use a specific, concrete example?' },
   { id: 'conclusion', group: 'Structure',  q: 'Did you lead with your main point first?' },
   { id: 'flow',       group: 'Structure',  q: 'Is there a clear, logical flow to your answer?' },
+];
+
+const TECHNICAL_REVIEW = [
+  { id: 'clear',      group: 'Delivery',   q: 'Is your speech clear and easy to understand?' },
+  { id: 'pace',       group: 'Delivery',   q: 'Is your pace comfortable — not rushing or dragging?' },
+  { id: 'confident',  group: 'Delivery',   q: 'Do you sound confident throughout?' },
+  { id: 'smooth',     group: 'Delivery',   q: 'Delivery felt smooth — no awkward pauses or volume drops?' },
+  { id: 'addresses',  group: 'Content',    q: 'Does your answer directly address the question?' },
+  { id: 'logic',      group: 'Content',    q: 'Did you walk through your logic step by step?' },
+  { id: 'accurate',   group: 'Content',    q: 'Did you get the key concepts right?' },
+  { id: 'conclusion', group: 'Structure',  q: 'Did you lead with your conclusion before the detail?' },
+  { id: 'why',        group: 'Structure',  q: 'Did you explain the "why," not just the "what"?' },
 ];
 
 const SR_GROUPS = ['Delivery', 'Content', 'Structure'];
@@ -210,7 +223,7 @@ function wpmInfo(wpm) {
 /* Word-highlighted transcript — highlights current word during playback.
    Uses phrase timestamps when available (Path 1), falls back to uniform
    proportion when not. Filler words are highlighted orange at rest. */
-function TranscriptDisplay({ text, currentTime, duration, isPlaying, wordTimestamps, fillerIndices }) {
+function TranscriptDisplay({ text, currentTime, duration, isPlaying, wordTimestamps, fillerIndices, flaggedMoments }) {
   if (!text) return (
     <p className="iv-transcript-empty">
       No transcript captured — make sure your browser allows microphone access and supports speech recognition.
@@ -236,9 +249,12 @@ function TranscriptDisplay({ text, currentTime, duration, isPlaying, wordTimesta
     <p className="iv-transcript-text">
       {words.map((word, i) => {
         const isFiller  = fillerIndices?.has(i);
+        const isFlagged = wordTimestamps?.[i] && flaggedMoments?.length > 0 &&
+          flaggedMoments.some(ft => Math.abs(wordTimestamps[i].time - ft) < 0.8);
         const cls =
           i === activeIdx ? 'iv-word current'
           : i < activeIdx ? 'iv-word spoken'
+          : isFlagged     ? 'iv-word flagged'
           : isFiller      ? 'iv-word filler'
           : 'iv-word';
         return <span key={i} className={cls}>{word}{' '}</span>;
@@ -277,6 +293,11 @@ export default function MockInterview() {
   const [fillerData,       setFillerData]       = useState(null);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [selfReview,       setSelfReview]       = useState({});
+  const [selfNote,         setSelfNote]         = useState('');
+  const [flaggedMoments,   setFlaggedMoments]   = useState([]);
+  const [replayCount,      setReplayCount]      = useState(0);
+  const [prevRecording,    setPrevRecording]    = useState(null);
+  const [prevIsPlaying,    setPrevIsPlaying]    = useState(false);
 
   const timerRef           = useRef(null);
   const mediaRecorderRef   = useRef(null);
@@ -287,6 +308,7 @@ export default function MockInterview() {
   const recordingStartRef  = useRef(0);   // performance.now() when mic opened
   const wordTimestampsRef  = useRef([]);  // accumulates {word, time} during recording
   const lastPhraseEndRef   = useRef(0);   // elapsed seconds at end of last final phrase
+  const prevAudioRef       = useRef(null);
 
   const questions = mode === 'networking' ? NETWORKING_QUESTIONS
                   : mode === 'firstround' ? FIRSTROUND_QUESTIONS
@@ -338,6 +360,7 @@ export default function MockInterview() {
   const startRecording = async () => {
     setMicError(null); setAudioUrl(null); setFeedback(null);
     setTimer(0); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0); setSelfReview({});
+    setSelfNote(''); setFlaggedMoments([]); setReplayCount(0);
     transcriptRef.current    = '';
     wordTimestampsRef.current = [];
     lastPhraseEndRef.current  = 0;
@@ -406,9 +429,34 @@ export default function MockInterview() {
   }, [q, analyzeTranscript]);
 
   const nextQuestion = () => {
+    // Save review history to localStorage
+    if (transcript && timer > 0) {
+      const reviewQuestions = q.category === 'Behavioral' ? BEHAVIORAL_REVIEW : TECHNICAL_REVIEW;
+      const groupScores = SR_GROUPS.map(group => ({
+        group,
+        nos: reviewQuestions.filter(item => item.group === group && selfReview[item.id] === false).length,
+        total: reviewQuestions.filter(item => item.group === group).length,
+      }));
+      const entry = {
+        date: new Date().toISOString(),
+        question: q.question,
+        category: q.category,
+        mode,
+        groupScores,
+        note: selfNote,
+        wpm,
+        fillerCount: fillerData?.total || 0,
+      };
+      try {
+        const history = JSON.parse(localStorage.getItem('pd-review-history') || '[]');
+        localStorage.setItem('pd-review-history', JSON.stringify([...history, entry]));
+      } catch {}
+    }
     setQIndex(i => (i + 1) % questions.length);
     setTimer(0); setIsPlaying(false); setAudioUrl(null); setMicError(null);
     setFeedback(null); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0); setSelfReview({});
+    setSelfNote(''); setFlaggedMoments([]); setReplayCount(0);
+    setPrevRecording(null); setPrevIsPlaying(false);
     wordTimestampsRef.current = []; lastPhraseEndRef.current = 0;
     setStep(0);
   };
@@ -421,6 +469,8 @@ export default function MockInterview() {
     setStep(0); setQIndex(0); setIsRecording(false); setTimer(0);
     setIsPlaying(false); setAudioUrl(null); setMicError(null);
     setFeedback(null); setTranscript(''); setWordTimestamps([]); setFillerData(null); setAudioCurrentTime(0); setSelfReview({});
+    setSelfNote(''); setFlaggedMoments([]); setReplayCount(0);
+    setPrevRecording(null); setPrevIsPlaying(false);
     wordTimestampsRef.current = []; lastPhraseEndRef.current = 0;
     setIsAnalyzing(false);
   };
@@ -430,6 +480,26 @@ export default function MockInterview() {
   const wpmData = wpmInfo(wpm);
   const toggleReview = (id, val) =>
     setSelfReview(prev => ({ ...prev, [id]: prev[id] === val ? null : val }));
+
+  const reviewQuestions = q.category === 'Behavioral' ? BEHAVIORAL_REVIEW : TECHNICAL_REVIEW;
+  const weakestGroup = SR_GROUPS
+    .map(group => ({
+      group,
+      nos: reviewQuestions.filter(item => item.group === group && selfReview[item.id] === false).length,
+      total: reviewQuestions.filter(item => item.group === group).length,
+    }))
+    .filter(g => g.nos > 0)
+    .sort((a, b) => b.nos - a.nos)[0] || null;
+
+  const retryQuestion = () => {
+    setPrevRecording({ audioUrl, transcript, timer, wordTimestamps });
+    setPrevIsPlaying(false);
+    setStep(1);
+    setTimer(0); setIsPlaying(false); setAudioUrl(null); setMicError(null);
+    setFeedback(null); setTranscript(''); setWordTimestamps([]); setFillerData(null);
+    setAudioCurrentTime(0); setSelfReview({}); setSelfNote(''); setFlaggedMoments([]); setReplayCount(0);
+    wordTimestampsRef.current = []; lastPhraseEndRef.current = 0;
+  };
 
   const activeType = INTERVIEW_TYPES.find(t => t.id === mode);
 
@@ -646,6 +716,39 @@ export default function MockInterview() {
         <div className="iv-feedback-screen">
           {/* Left: score header + audio player + transcript */}
           <div className="iv-feedback-left">
+            {prevRecording && (
+              <div className="iv-prev-recording">
+                <div className="iv-prev-header">
+                  <span className="iv-prev-label">Previous Attempt</span>
+                  <span className="iv-prev-duration">{fmtTime(prevRecording.timer)}</span>
+                </div>
+                <audio
+                  ref={prevAudioRef}
+                  src={prevRecording.audioUrl}
+                  onEnded={() => setPrevIsPlaying(false)}
+                />
+                <div className="iv-prev-player" onClick={() => {
+                  const a = prevAudioRef.current;
+                  if (!a) return;
+                  if (prevIsPlaying) { a.pause(); setPrevIsPlaying(false); }
+                  else { a.currentTime = 0; a.play().then(() => setPrevIsPlaying(true)).catch(() => {}); }
+                }}>
+                  <div className={`iv-prev-play-btn${prevIsPlaying ? ' playing' : ''}`}>
+                    {prevIsPlaying ? (
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                        <rect x="3" y="2" width="3" height="12" rx="1" fill="#c9a84c"/>
+                        <rect x="10" y="2" width="3" height="12" rx="1" fill="#c9a84c"/>
+                      </svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 2.5l10 5.5-10 5.5V2.5z" fill="#c9a84c"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span className="iv-prev-play-label">{prevIsPlaying ? 'Playing…' : 'Play previous attempt'}</span>
+                </div>
+              </div>
+            )}
             <div className="feedback-header">
               <span className="feedback-title">Review Your Answer</span>
             </div>
@@ -669,7 +772,7 @@ export default function MockInterview() {
               } else {
                 audio.currentTime = 0;
                 setAudioCurrentTime(0);
-                audio.play().then(() => setIsPlaying(true)).catch(() => {});
+                audio.play().then(() => { setReplayCount(c => c + 1); setIsPlaying(true); }).catch(() => {});
               }
             }}>
               <div className={`iv-audio-play-btn${isPlaying ? ' playing' : ''}`}>
@@ -696,7 +799,26 @@ export default function MockInterview() {
                   <span>{fmtTime(timer)}</span>
                 </div>
               </div>
+              {replayCount > 0 && (
+                <span className="iv-replay-count">Replayed {replayCount}×</span>
+              )}
               {!audioUrl && <span className="iv-audio-unavail">No recording</span>}
+            </div>
+
+            <div className="iv-flag-row">
+              <button
+                className="iv-flag-btn"
+                onClick={() => setFlaggedMoments(prev => [...prev, audioCurrentTime])}
+                disabled={!isPlaying}
+              >
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 1v12M2 1h8l-2 3.5 2 3.5H2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Flag this moment
+              </button>
+              {flaggedMoments.length > 0 && (
+                <span className="iv-flag-count">{flaggedMoments.length} flagged</span>
+              )}
             </div>
 
             {/* Transcript panel */}
@@ -718,6 +840,7 @@ export default function MockInterview() {
                   isPlaying={isPlaying}
                   wordTimestamps={wordTimestamps}
                   fillerIndices={fillerData?.fillerIndices}
+                  flaggedMoments={flaggedMoments}
                 />
               </div>
             </div>
@@ -741,9 +864,9 @@ export default function MockInterview() {
               {SR_GROUPS.map(group => (
                 <div key={group} className="iv-sr-group">
                   <div className="iv-sr-group-label">{group}</div>
-                  {SELF_REVIEW.filter(item => item.group === group).map(({ id, q }) => (
+                  {reviewQuestions.filter(item => item.group === group).map(({ id, q: rq }) => (
                     <div key={id} className="iv-sr-item">
-                      <span className="iv-sr-question">{q}</span>
+                      <span className="iv-sr-question">{rq}</span>
                       <div className="iv-sr-btns">
                         <button
                           className={`iv-sr-btn iv-sr-yes${selfReview[id] === true ? ' selected' : ''}`}
@@ -758,7 +881,31 @@ export default function MockInterview() {
                   ))}
                 </div>
               ))}
+              {weakestGroup && (
+                <div className="iv-sr-summary">
+                  Biggest opportunity: <strong>{weakestGroup.group}</strong>
+                  <span className="iv-sr-summary-count">({weakestGroup.nos}/{weakestGroup.total} flagged)</span>
+                </div>
+              )}
+              <div className="iv-sr-note-wrap">
+                <label className="iv-sr-note-label">What would I do differently?</label>
+                <textarea
+                  className="iv-sr-note"
+                  value={selfNote}
+                  onChange={e => setSelfNote(e.target.value)}
+                  placeholder="One thing I'd change next time…"
+                  rows={2}
+                />
+              </div>
             </div>
+
+            <button className="iv-retry-btn" onClick={retryQuestion}>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <path d="M2 8a6 6 0 1 0 1.5-3.9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M2 3.5V8h4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Re-record this question
+            </button>
 
             {/* WPM gauge */}
             {transcript && timer > 0 && (

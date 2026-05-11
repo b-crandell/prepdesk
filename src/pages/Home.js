@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const STATS = [
@@ -73,6 +73,34 @@ export default function Home() {
   const h = new Date().getHours();
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 
+  const [patterns, setPatterns] = useState([]);
+  const [sessionCount, setSessionCount] = useState(0);
+
+  useEffect(() => {
+    try {
+      const history = JSON.parse(localStorage.getItem('pd-review-history') || '[]');
+      setSessionCount(history.length);
+      if (history.length < 2) { setPatterns([]); return; }
+      const tally = {};
+      history.forEach(entry => {
+        (entry.groupScores || []).forEach(({ group, nos, total }) => {
+          if (!tally[group]) tally[group] = { no: 0, total: 0 };
+          tally[group].no += nos;
+          tally[group].total += total;
+        });
+      });
+      const result = Object.entries(tally)
+        .filter(([, v]) => v.total >= 2)
+        .map(([group, { no, total }]) => ({
+          group,
+          rate: Math.round((no / total) * 100),
+        }))
+        .sort((a, b) => b.rate - a.rate)
+        .filter(g => g.rate >= 25);
+      setPatterns(result);
+    } catch { setPatterns([]); }
+  }, []);
+
   return (
     <div className="page-content">
       <div className="home-greeting">{greeting}.</div>
@@ -88,6 +116,24 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {patterns.length > 0 && (
+        <div className="home-focus">
+          <div className="home-focus-header">
+            <span className="home-focus-title">Recurring Focus Areas</span>
+            <span className="home-focus-sub">Based on {sessionCount} recorded answers</span>
+          </div>
+          <div className="home-focus-grid">
+            {patterns.map(({ group, rate }) => (
+              <div key={group} className={`home-focus-card${rate >= 60 ? ' focus-high' : ' focus-mid'}`}>
+                <span className="home-focus-group">{group}</span>
+                <span className="home-focus-rate">{rate}%</span>
+                <span className="home-focus-label">flagged</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <p className="page-subtitle">Pick a mode to keep building.</p>
 

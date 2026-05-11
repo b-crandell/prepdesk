@@ -3131,3 +3131,283 @@ body {
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.35);
 }
+
+/* ─── Flagged moments ─────────────────────────────────────────── */
+
+.iv-word.flagged {
+  text-decoration: underline wavy #f59e0b;
+  text-underline-offset: 3px;
+}
+
+.iv-flag-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.iv-flag-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.iv-flag-btn:not(:disabled):hover {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.iv-flag-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.iv-flag-count {
+  font-size: 12px;
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+/* ─── Replay counter ──────────────────────────────────────────── */
+
+.iv-replay-count {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-left: auto;
+  flex-shrink: 0;
+  font-style: italic;
+}
+
+/* ─── Previous recording player ───────────────────────────────── */
+
+.iv-prev-recording {
+  background: rgba(201, 168, 76, 0.04);
+  border: 1px solid rgba(201, 168, 76, 0.15);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.iv-prev-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.iv-prev-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.7;
+}
+
+.iv-prev-duration {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.iv-prev-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.iv-prev-play-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.iv-prev-play-btn.playing {
+  background: rgba(201, 168, 76, 0.2);
+}
+
+.iv-prev-play-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ─── Retry button ────────────────────────────────────────────── */
+
+.iv-retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.iv-retry-btn:hover {
+  color: rgba(255, 255, 255, 0.65);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── Self-review note textarea ───────────────────────────────── */
+
+.iv-sr-note-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.iv-sr-note-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.iv-sr-note {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  padding: 8px 10px;
+  resize: none;
+  line-height: 1.5;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.iv-sr-note:focus {
+  outline: none;
+  border-color: rgba(201, 168, 76, 0.35);
+}
+
+.iv-sr-note::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+  font-style: italic;
+}
+
+/* ─── Self-review summary line ────────────────────────────────── */
+
+.iv-sr-summary {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 8px 10px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 8px;
+}
+
+.iv-sr-summary strong {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.iv-sr-summary-count {
+  color: rgba(255, 255, 255, 0.3);
+  margin-left: 4px;
+}
+
+/* ─── Home focus areas ────────────────────────────────────────── */
+
+.home-focus {
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home-focus-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.home-focus-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.home-focus-sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.home-focus-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.home-focus-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid;
+}
+
+.home-focus-card.focus-high {
+  background: rgba(239, 68, 68, 0.07);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.home-focus-card.focus-mid {
+  background: rgba(201, 168, 76, 0.06);
+  border-color: rgba(201, 168, 76, 0.2);
+}
+
+.home-focus-group {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.home-focus-rate {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.home-focus-card.focus-mid .home-focus-rate {
+  color: var(--gold);
+}
+
+.home-focus-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
