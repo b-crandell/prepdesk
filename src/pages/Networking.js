@@ -14,6 +14,58 @@ const FOLLOW_UP_OPTIONS = [
 const BLANK_CALL = { bank: '', contact: '', role: '', date: '', type: 'Coffee Chat', notes: '', followUpInterval: '24h' };
 const BLANK_OUT  = { bank: '', contact: '', role: '', emailDate: '', purpose: 'Introduction / Networking', notes: '' };
 
+// ── Seed data (loads once if localStorage is empty) ──────────────────────────
+const SEED_OUTREACH = [
+  {
+    id: 'seed-out-1', bank: 'Goldman Sachs', contact: 'James Chen', role: 'VP, TMT',
+    emailDate: '2026-05-08', purpose: 'Coffee Chat Request', status: 'Pending',
+    notes: 'Connected through LinkedIn. Mentioned shared interest in software M&A.',
+  },
+  {
+    id: 'seed-out-2', bank: 'Morgan Stanley', contact: 'Sarah Williams', role: 'Associate, Healthcare',
+    emailDate: '2026-04-30', purpose: 'Coffee Chat Request', status: 'Pending',
+    notes: 'Reached out after her panel at the finance career fair.',
+  },
+  {
+    id: 'seed-out-3', bank: 'JPMorgan', contact: 'Michael Torres', role: 'Analyst, M&A',
+    emailDate: '2026-04-19', purpose: 'Introduction / Networking', status: 'Responded',
+    notes: 'Alumni connection. Responded within 2 days — very receptive.',
+  },
+  {
+    id: 'seed-out-4', bank: 'Evercore', contact: 'Amanda Park', role: 'VP, Consumer & Retail',
+    emailDate: '2026-04-26', purpose: 'Coffee Chat Request', status: 'Meeting Scheduled',
+    notes: 'Referred by a classmate. Meeting scheduled for next week.',
+  },
+  {
+    id: 'seed-out-5', bank: 'Lazard', contact: 'David Kim', role: 'Associate, Restructuring',
+    emailDate: '2026-04-10', purpose: 'Introduction / Networking', status: 'No Response',
+    notes: 'Cold outreach. Sent a follow-up after 1 week, still no reply.',
+  },
+];
+
+const SEED_CALLS = [
+  {
+    id: 'seed-call-1', bank: 'JPMorgan', contact: 'Michael Torres', role: 'Analyst, M&A',
+    date: '2026-04-28', type: 'Coffee Chat', followUpInterval: '24h', followUp: '2026-04-29',
+    notes: 'Great call. Walked me through the M&A process from pitch to close. Suggested I brush up on merger models and accretion/dilution. Said recruiting starts in late August — apply early. Will send a thank-you note tomorrow.',
+  },
+  {
+    id: 'seed-call-2', bank: 'JPMorgan', contact: 'Lisa Martinez', role: 'VP, Leveraged Finance',
+    date: '2026-04-15', type: 'Video Call', followUpInterval: '24h', followUp: '2026-04-16',
+    notes: 'Discussed the LevFin group structure and what they look for in analysts. Emphasized modeling skills and ability to work under pressure. Mentioned summer analyst offers go out in September.',
+  },
+  {
+    id: 'seed-call-3', bank: 'Goldman Sachs', contact: 'James Chen', role: 'VP, TMT',
+    date: '2026-05-01', type: 'Coffee Chat', followUpInterval: '24h', followUp: '2026-05-02',
+    notes: 'Talked through the TMT landscape and current deal activity. James was very helpful — suggested I follow a few specific deals to discuss in interviews. Said the group values people who are genuinely curious about technology.',
+  },
+  {
+    id: 'seed-call-4', bank: 'Evercore', contact: 'Amanda Park', role: 'VP, Consumer & Retail',
+    date: '2026-05-05', type: 'In-Person', followUpInterval: '24h', followUp: '2026-05-06',
+    notes: 'Met at their midtown office. Very conversational — she asked mostly fit questions. Strong culture emphasis at Evercore. Boutique feel, smaller analyst class. Encouraged me to apply for the off-cycle program.',
+  },
+];
+
 // Adds N days to a YYYY-MM-DD string (or today) without timezone drift
 function addDays(dateStr, n) {
   const base = dateStr ? dateStr.split('-').map(Number) : (() => {
@@ -23,8 +75,15 @@ function addDays(dateStr, n) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function load(key) {
-  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+function load(key, fallback = []) {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored === null) {
+      localStorage.setItem(key, JSON.stringify(fallback));
+      return fallback;
+    }
+    return JSON.parse(stored) || fallback;
+  } catch { return fallback; }
 }
 function save(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
@@ -40,8 +99,8 @@ function fmtDate(d) {
 }
 
 export default function Networking() {
-  const [calls,    setCalls]    = useState(() => load('pd-calls'));
-  const [outreach, setOutreach] = useState(() => load('pd-outreach'));
+  const [calls,    setCalls]    = useState(() => load('pd-calls',    SEED_CALLS));
+  const [outreach, setOutreach] = useState(() => load('pd-outreach', SEED_OUTREACH));
   const [tab,      setTab]      = useState('outreach'); // 'outreach' | 'calls'
 
   const [showCallModal, setShowCallModal]       = useState(false);
